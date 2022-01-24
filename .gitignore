@@ -39,3 +39,8 @@
 *.suo
 *.user
 *.sln.docstates
+
+# Binary output
+**/Debug/*
+**/Release/*
+**/bin/*
