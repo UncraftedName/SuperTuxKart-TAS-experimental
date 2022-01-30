@@ -60,7 +60,7 @@ def processTASLines(data):
         ticks = fields[3]
         processTASFields(fields)
 
-def removeComments(string):
+def removeComments(string): # literally hear just to remove comments :P
     return string[:string.find("//")]
 
 def parseTAS(tasFile):
