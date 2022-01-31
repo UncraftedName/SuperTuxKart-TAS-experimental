@@ -1,6 +1,8 @@
 #include <iostream>
 #include <Windows.h>
 #include <TlHelp32.h>
+#include <psapi.h>
+#include <assert.h>
 
 
 std::string GetLastErrorAsStr() {
@@ -34,7 +36,6 @@ DWORD GetProcessId(const wchar_t* processName) {
 			do {
 				if (!wcscmp(pE.szExeFile, processName)) {
 					procId = pE.th32ProcessID;
-					wprintf(L"%s process ID: %lu\n", processName, pE.th32ProcessID);
 					return pE.th32ProcessID;
 					break;
 				}
@@ -46,11 +47,43 @@ DWORD GetProcessId(const wchar_t* processName) {
 }
 
 
-bool InjectDLL(const wchar_t* processName, const char* dllPath) {
+bool isModuleLoaded(HANDLE hProc, const wchar_t* modName) {
+	
+	HMODULE hMods[1024] = {0};
+	DWORD bytesNeeded;
+
+	// get modules in process
+	if (!EnumProcessModules(hProc, hMods, sizeof(hMods), &bytesNeeded)) {
+		// this should never happen... premature exit
+		std::cout << "Could not enumerate modules in process, ";
+		if (bytesNeeded > sizeof(hMods) / sizeof(HMODULE))
+			std::cout << "too few entries\n";
+		else
+			std::cout << "reason: " << GetLastErrorAsStr() << "\n";
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
+
+	/*
+	 * Compare each module to the name given; this only compares the base name, so if this process
+	 * has already loaded e.g. Payload.dll (even if it's not our dll) this would return true.
+	 * It would be better to compare against the full path, but for the time being this will be fine
+	 * since I don't want someone trying to load a release and debug dll together. It would probably
+	 * be better if the dll somehow detected that some version of it has already been loaded.
+	 */
+	wchar_t curModName[MAX_PATH];
+	for (int i = 0; i < bytesNeeded / sizeof(HMODULE); i++)
+		if (GetModuleBaseName(hProc, hMods[i], curModName, MAX_PATH) && !wcscmp(modName, curModName))
+			return true;
+	return false;
+}
+
+
+bool InjectDLL(const wchar_t* processName, const char* dllPath, const wchar_t* baseDllName) {
 
 	DWORD procID = GetProcessId(processName);
 	if (!procID) {
-		std::cout << "Could not get target process ID, reason: " << GetLastErrorAsStr() << "\n";
+		std::cout << "Could not find target process ID (is the game open?)\n";
 		return false;
 	}
 
@@ -58,6 +91,13 @@ bool InjectDLL(const wchar_t* processName, const char* dllPath) {
 	if (hProc == INVALID_HANDLE_VALUE) {
 		std::cout << "Could not open target process, reason: " << GetLastErrorAsStr() << "\n";
 		return false;
+	}
+
+	if (isModuleLoaded(hProc, baseDllName)) {
+		// premature exit
+		std::cout << "DLL already loaded\n";
+		system("pause");
+		return EXIT_SUCCESS;
 	}
 
 	void* loc = VirtualAllocEx(hProc, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -110,12 +150,13 @@ int main(void) {
 		return EXIT_FAILURE;
 	}
 
-	// TODO - check if the dll is already loaded, attempting to load it twice is :/
-	if (InjectDLL(processName, dllPath))
+	if (InjectDLL(processName, dllPath, payloadName)) {
 		std::cout << "DLL successfully injected.\n";
-	else
+		system("pause");
+		return EXIT_SUCCESS;
+	} else {
 		std::cout << "Could not inject DLL.\n";
-
-	system("pause");
-	return EXIT_SUCCESS;
+		system("pause");
+		return EXIT_FAILURE;
+	}
 }
