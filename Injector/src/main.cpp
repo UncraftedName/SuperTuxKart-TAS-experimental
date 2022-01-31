@@ -36,7 +36,6 @@ DWORD GetProcessId(const wchar_t* processName) {
 			do {
 				if (!wcscmp(pE.szExeFile, processName)) {
 					procId = pE.th32ProcessID;
-					return pE.th32ProcessID;
 					break;
 				}
 			} while (Process32Next(hSnap, &pE));
@@ -145,7 +144,7 @@ int main(void) {
 	wcstombs_s(&ret, dllPath, wdllPath, MAX_PATH);
 
 	if (!does_file_exist(dllPath)) {
-		std::cout << ("Could not find dll file.\n");
+		std::cout << "Could not find dll file.\n";
 		system("pause");
 		return EXIT_FAILURE;
 	}
