@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <VPhysicsFolders>spt\ivp-source;spt\ivp-source\ivp_collision;spt\ivp-source\ivp_compact_builder;spt\ivp-source\ivp_controller;spt\ivp-source\ivp_intern;spt\ivp-source\ivp_physics;spt\ivp-source\ivp_surface_manager;spt\ivp-source\ivp_utility</VPhysicsFolders>
+  </PropertyGroup>
+  <PropertyGroup />
+  <ItemDefinitionGroup />
+  <ItemGroup>
+    <BuildMacro Include="VPhysicsFolders">
+      <Value>$(VPhysicsFolders)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+  </ItemGroup>
+</Project>
