@@ -30,6 +30,12 @@
     <ClCompile Include="src\minhook\src\trampoline.c">
       <Filter>src\minhook</Filter>
     </ClCompile>
+    <ClCompile Include="src\utils.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\hooks.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\minhook\src\hde\hde32.h">
@@ -55,6 +61,15 @@
     </ClInclude>
     <ClInclude Include="src\minhook\include\MinHook.h">
       <Filter>src\minhook</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game_structures.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\hooks.h">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

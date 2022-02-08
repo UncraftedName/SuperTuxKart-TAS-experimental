@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2022 UncraftedName
+Copyright (c) 2022 Max Biryukov, Scott Gibsen, Benjamin Princen, and Ryan Leung
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+===============================================================================
+This project uses MinHook, see Payload/src/minhook/LICENSE.txt for its license.
+
+===============================================================================
+This project uses snippets from https://github.com/supertuxkart/stk-code, which
+is licensed under the GNU GENERAL PUBLIC LICENSE.

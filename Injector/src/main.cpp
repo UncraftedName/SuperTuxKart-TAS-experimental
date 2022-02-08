@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <TlHelp32.h>
 #include <psapi.h>
-#include <assert.h>
 
 
 std::string GetLastErrorAsStr() {
