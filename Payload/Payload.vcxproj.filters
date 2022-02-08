@@ -2,11 +2,11 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="src">
-      <UniqueIdentifier>{d5b6d8db-f918-469f-bae7-381118c91022}</UniqueIdentifier>
+      <UniqueIdentifier>{af2c0181-96fb-4979-82ea-b91362f7c2f6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Main.cpp">
+    <ClCompile Include="src\payload_main.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
