@@ -15,6 +15,7 @@
     <ClCompile Include="src\payload_main.cpp">
       <Filter>src</Filter>
     </ClCompile>
+<<<<<<< HEAD
     <ClCompile Include="src\minhook\src\hde\hde32.c">
       <Filter>src\minhook\HDE</Filter>
     </ClCompile>
@@ -34,10 +35,14 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\hooks.cpp">
+=======
+    <ClCompile Include="..\Injector\ipc.cpp">
+>>>>>>> e54727f... Added basic IPC stuff
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+<<<<<<< HEAD
     <ClInclude Include="src\minhook\src\hde\hde32.h">
       <Filter>src\minhook\HDE</Filter>
     </ClInclude>
@@ -69,6 +74,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\hooks.h">
+=======
+    <ClInclude Include="..\Injector\ipc.hpp">
+>>>>>>> e54727f... Added basic IPC stuff
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
