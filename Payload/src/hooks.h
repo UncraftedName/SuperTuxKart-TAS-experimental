@@ -5,7 +5,6 @@
 
 namespace hooks {
 
-	// return true on success, false on failure
 	// basePtr - pointer to the base of supertuxkart.exe
 	MH_STATUS HookAll(void* basePtr);
 

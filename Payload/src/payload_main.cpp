@@ -13,10 +13,12 @@ struct InfoMain {
 InfoMain* g_Info;
 
 
-__declspec(noreturn) void Exit(DWORD exitCode) {
+__declspec(noreturn) void Exit(DWORD exitCode, const wchar_t* reason) {
 	MH_Uninitialize(); // this should unhook everything
 	HMODULE thisMod = g_Info->hModule;
 	delete g_Info; // if we don't delete this it technically results in a memory leak
+	if (reason)
+		MessageBox(0, reason, L"", MB_OK);
 	FreeLibraryAndExitThread(thisMod, exitCode);
 }
 
@@ -24,14 +26,10 @@ __declspec(noreturn) void Exit(DWORD exitCode) {
 DWORD __stdcall Main(void* _) {
 
 	void* mBase = nullptr;
-	if (!utils::GetModuleInfo(L"supertuxkart.exe", nullptr, &mBase, nullptr)) {
-		MessageBox(0, L"failed to get module info for main exe", L"", MB_OK);
-		Exit(1);
-	}
-	if (hooks::HookAll(mBase) != MH_OK) {
-		MessageBox(0, L"Failed to hook one or more functions", L"", MB_OK);
-		Exit(1);
-	}
+	if (!utils::GetModuleInfo(L"supertuxkart.exe", nullptr, &mBase, nullptr))
+		Exit(1, L"failed to get module info for main exe");
+	if (hooks::HookAll(mBase) != MH_OK)
+		Exit(1, L"Failed to hook one or more functions");
 
 	// TODO: @ryan replace this with your ipc stuff
 	IPC server;

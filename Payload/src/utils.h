@@ -8,8 +8,8 @@
 #include <string>
 
 
-// unload the dll from anywhere
-__declspec(noreturn) void Exit(DWORD exitCode);
+// unload the dll from anywhere, reason can be null
+__declspec(noreturn) void Exit(DWORD exitCode, const wchar_t* reason = nullptr);
 
 namespace utils {
 	bool GetModuleInfo(const std::wstring& mName, void** hModule, void** mBase, size_t* mSize);
