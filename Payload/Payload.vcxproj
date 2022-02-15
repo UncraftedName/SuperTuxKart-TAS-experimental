@@ -81,8 +81,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ipc.cpp" />
     <ClCompile Include="src\hooks.cpp" />
+    <ClCompile Include="src\ipc.cpp" />
     <ClCompile Include="src\minhook\src\buffer.c" />
     <ClCompile Include="src\minhook\src\hde\hde32.c" />
     <ClCompile Include="src\minhook\src\hde\hde64.c" />
@@ -92,9 +92,9 @@
     <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ipc.h" />
     <ClInclude Include="src\game_structures.h" />
     <ClInclude Include="src\hooks.h" />
+    <ClInclude Include="src\ipc.h" />
     <ClInclude Include="src\minhook\include\MinHook.h" />
     <ClInclude Include="src\minhook\src\buffer.h" />
     <ClInclude Include="src\minhook\src\hde\hde32.h" />
