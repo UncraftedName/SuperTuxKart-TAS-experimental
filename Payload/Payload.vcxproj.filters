@@ -36,6 +36,9 @@
     <ClCompile Include="src\hooks.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="ipc.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\minhook\src\hde\hde32.h">
@@ -69,6 +72,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\hooks.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="ipc.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
