@@ -87,7 +87,6 @@
     <ClCompile Include="src\minhook\src\hde\hde64.c" />
     <ClCompile Include="src\minhook\src\hook.c" />
     <ClCompile Include="src\minhook\src\trampoline.c" />
-    <ClCompile Include="..\Injector\ipc.cpp" />
     <ClCompile Include="src\payload_main.cpp" />
     <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
@@ -103,9 +102,6 @@
     <ClInclude Include="src\minhook\src\hde\table64.h" />
     <ClInclude Include="src\minhook\src\trampoline.h" />
     <ClInclude Include="src\utils.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\Injector\ipc.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
