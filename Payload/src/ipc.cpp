@@ -66,7 +66,7 @@ void IPC::start() {
 	}
 
 	// Launch thread
-	std::thread t(&accept_loop);
+	accept_loop();
 }
 
 void IPC::stop() {
@@ -84,5 +84,6 @@ void IPC::accept_loop() {
 		}
 
 		// handle connection
+		
 	}
 }

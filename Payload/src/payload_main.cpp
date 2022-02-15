@@ -1,5 +1,6 @@
 #include "utils.h"
 #include "hooks.h"
+#include "./ipc.h"
 
 
 // any sort of global stuff we might need to keep track of so that we can cleanup in Exit()
@@ -33,6 +34,8 @@ DWORD __stdcall Main(void* _) {
 	}
 
 	// TODO: @ryan replace this with your ipc stuff
+	IPC server;
+	server.start();
 	MessageBox(0, L"When you close this the dll will unload", L"", MB_OK);
 	Exit(0);
 }
