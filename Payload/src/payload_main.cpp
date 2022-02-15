@@ -5,8 +5,15 @@
 
 // any sort of global stuff we might need to keep track of so that we can cleanup in Exit()
 struct InfoMain {
+
 	HMODULE hModule; // handle to this dll
-	InfoMain(HMODULE hModule) : hModule(hModule) {}
+	IPC* ipc; // global ipc object
+
+	InfoMain(HMODULE hModule) : hModule(hModule), ipc(nullptr) {}
+
+	~InfoMain() {
+		delete ipc;
+	}
 };
 
 
@@ -23,7 +30,7 @@ __declspec(noreturn) void Exit(DWORD exitCode, const wchar_t* reason) {
 }
 
 
-DWORD __stdcall Main(void* _) {
+__declspec(noreturn) void __stdcall Main(void* _) {
 
 	void* mBase = nullptr;
 	if (!utils::GetModuleInfo(L"supertuxkart.exe", nullptr, &mBase, nullptr))
@@ -31,11 +38,9 @@ DWORD __stdcall Main(void* _) {
 	if (hooks::HookAll(mBase) != MH_OK)
 		Exit(1, L"Failed to hook one or more functions");
 
-	// TODO: @ryan replace this with your ipc stuff
-	IPC server;
-	server.start();
-	MessageBox(0, L"When you close this the dll will unload", L"", MB_OK);
-	Exit(0);
+	g_Info->ipc = new IPC();
+	g_Info->ipc->start();
+	Exit(1, L"I'm not supposed to get here...");
 }
 
 
