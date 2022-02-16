@@ -1,7 +1,6 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <iostream>
-#include <thread>
 
 #include "ipc.h"
 #include "utils.h"
@@ -47,34 +46,75 @@ IPC::IPC() {
 }
 
 IPC::~IPC() {
+	WSACleanup();
 	if (listen_socket != INVALID_SOCKET)
 		closesocket(listen_socket);
 }
 
 void IPC::start() {
+	if (buf != nullptr) {
+		delete[] buf;
+		buf = nullptr;
+		pos = -1;
+		buflen = -1;
+	}
+
 	int res = listen(listen_socket, 1);
 	if (res == SOCKET_ERROR) {
 		closesocket(listen_socket);
 		WSACleanup();
 		Exit(1, L"IPC: Listen failed");
 	}
-	accept_loop();
-}
 
-void IPC::stop() {
-
-}
-
-void IPC::accept_loop() {
-	while (true) {
-		client_socket = accept(listen_socket, nullptr, nullptr);
-		if (client_socket == INVALID_SOCKET) {
-			closesocket(listen_socket);
-			WSACleanup();
-			Exit(1, L"IPC: Failed to accept client");
-		}
-
-		// handle connection
-		
+	client_socket = accept(listen_socket, nullptr, nullptr);
+	if (client_socket == INVALID_SOCKET) {
+		closesocket(listen_socket);
+		WSACleanup();
+		Exit(1, L"IPC: Failed to accept client");
 	}
+
+	__int64 len = 0;
+	res = recv(client_socket, (char *) &len, 8, 0);
+	if (res != 8) {
+		closesocket(listen_socket);
+		WSACleanup();
+		Exit(1, L"IPC: Failed to receive data from client");
+	}
+
+	buflen = ntohll(len);
+	buf = new char[buflen];
+	res = recv(client_socket, buf, buflen, 0);
+	if (res != buflen) {
+		closesocket(listen_socket);
+		WSACleanup();
+		delete[] buf;
+		Exit(1, L"IPC: Failed to receive data from client");
+	}
+	pos = 0;
+}
+
+bool IPC::next_framebulk() {
+	if (buf == nullptr) {
+		return false;
+	}
+
+	__int64 fb = 0;
+	memcpy(&fb, buf + pos, FB_SIZE);
+	fb = ntohll(fb);
+	pos += FB_SIZE;
+	if (pos == buflen) {
+		delete[] buf;
+		buf = nullptr;
+		pos = -1;
+		buflen = -1;
+	}
+
+	output.accel = fb & mask_accel;
+	output.brake = fb & mask_brake;
+	output.fire = fb & mask_fire;
+	output.nitro = fb & mask_nitro;
+	output.skid = fb & mask_skid;
+	output.angle = (float)(fb & mask_angle);
+	output.ticks = (int)((fb & mask_ticks) >> 32);
+	return true;
 }
