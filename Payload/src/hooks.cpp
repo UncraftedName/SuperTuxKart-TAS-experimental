@@ -1,8 +1,13 @@
 #include "hooks.h"
 
+
+void* g_mBase = nullptr;
+
+
 namespace hooks {
 
 	_InputManager__input ORIG_InputManager__input = nullptr;
+
 
 	// (copied doc string from MH_CreateHook)
 	/*
@@ -25,15 +30,23 @@ namespace hooks {
 	}
 
 
-	MH_STATUS HookAll(void* basePtr) {
+	MH_STATUS HookAll() {
+
+		#define FAILED_HOOK(name, offset) (stat = QueueFunctionHook(FROM_BASE(offset), &DETOUR_##name, ORIG_##name)) != MH_OK
+		#define SET_FUNC_PTR(name, offset) ORIG_##name = (_##name)FROM_BASE(offset);
+
 
 		MH_STATUS stat;
 		if (
 			(stat = MH_Initialize()) != MH_OK ||
-			(stat = QueueFunctionHook((LPVOID)((uintptr_t)basePtr + 0x17d690), &DETOUR_InputManager__input, ORIG_InputManager__input)) != MH_OK ||
+			FAILED_HOOK(InputManager__input, 0x17d690) ||
 			// add more hooks here
 			(stat = MH_ApplyQueued()) != MH_OK
 		) return stat;
+
+
+		#undef FAILED_HOOK
+		#undef GET_FUNC_PTR
 
 		return MH_OK;
 	}

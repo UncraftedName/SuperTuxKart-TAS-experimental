@@ -32,10 +32,9 @@ __declspec(noreturn) void Exit(DWORD exitCode, const wchar_t* reason) {
 
 __declspec(noreturn) void __stdcall Main(void* _) {
 
-	void* mBase = nullptr;
-	if (!utils::GetModuleInfo(L"supertuxkart.exe", nullptr, &mBase, nullptr))
+	if (!utils::GetModuleInfo(L"supertuxkart.exe", nullptr, &g_mBase, nullptr))
 		Exit(1, L"failed to get module info for main exe");
-	if (hooks::HookAll(mBase) != MH_OK)
+	if (hooks::HookAll() != MH_OK)
 		Exit(1, L"Failed to hook one or more functions");
 
 	g_Info->ipc = new IPC();
