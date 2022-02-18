@@ -37,9 +37,8 @@ class Client_Socket:
             print('Error: Invalid message received from server')
             exit(1)
         full_msg = bytes()
-        while True:
+        while msg_len > 0:
             msg = self.client_socket.recv(1024)
-            if len(msg) <= 0:
-                break
             full_msg += msg
+            msg_len -= len(msg)
         return full_msg
