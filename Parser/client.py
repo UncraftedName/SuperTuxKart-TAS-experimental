@@ -1,19 +1,50 @@
+# =================================================
+# Client Socket usage:
+#   Create an object of Client_Socket: sock
+#   Call sock.start() to connect to the IPC server
+#   To send data, call sock.send(msg) where 'msg'
+#   is a bytes object.
+#   To receive data, call sock.recv() which returns
+#   a bytes object retrieved from the server.
+# =================================================
+
 import socket
 import struct
 
-addr = ('127.0.0.1', 27015) # host and port number
-msg_len_size = 4 # will be used when receiving to read size of message as int
+addr = ('127.0.0.1', 27015) # IPC connection address
 
-# Used to create a client socket
-# Client socket should be closed by the server
+
 class Client_Socket:
+    """Client_Socket class
+    
+    Used to create a socket that can send and receive tcp packets
+    from a server
+
+    Client_Socket should be closed by the server once IPC transfers
+    are completed
+    """
+
     def __init__(self):
-        # Member socket initialized for ipv4 and tcp
+        """initialize Client_Socket object
+        
+        Creates a socket that connects to an ipv4 address, and sends data
+        using tcp
+        """
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Attempts to connect to the server
     # prints an error and exits if connection unsuccessful
     def start(self):
+        """Attempts to connect to a server at addr
+
+        Either prints a message declaring an error, or that connection was successful
+
+        Keyword arguments:
+        none
+
+        Return:
+        none
+        """
         try:
             self.client_socket.connect(addr)
         except:
@@ -21,21 +52,38 @@ class Client_Socket:
             exit(1)
         print ('connection successful')
 
-    # sends a message from the client to the server
+
     def send(self, msg : bytes) -> None:
-        # prepend the length of message in front of msg
-        # using little endian for consistency
-        package = struct.pack('<i', len(msg)) + msg
+        """sends a message from the client to the server
+
+        Keyword arguments:
+        msg -- a bytes object which should be sent to the server
+
+        Return:
+        none
+        """
+        # prepend the length of message in front of msg and send
+        package = struct.pack('<i', len(msg)) + msg # <i to interpret as little endian
         self.client_socket.send(package)
         
-    # receives a message from the server
+
     def recv(self) -> bytes:
-        # get the total message length
-        # using little endian for consistency
-        msg_len = struct.unpack('<i', self.client_socket.recv(msg_len_size))
+        """retrieves a message from the server
+
+        Keyword arguments:
+        none
+
+        Return:
+        bytes() -- a bytes object containing the message sent by the server
+        """
+        msg_len_size = 4 # bytes of message containing message length
+
+        # stores the number of bytes in message into msg_len
+        msg_len = struct.unpack('<i', self.client_socket.recv(msg_len_size)) # <i to interpret as little endian
         if len(msg) <= 0:
             print('Error: Invalid message received from server')
             exit(1)
+        # loop until msg_len bytes are received from the server
         full_msg = bytes()
         while msg_len > 0:
             msg = self.client_socket.recv(1024)
