@@ -1,39 +1,31 @@
 #pragma once
 
 #include <WinSock2.h>
+#include <string>
 
 class IPC {
 public:
 	IPC();
 	~IPC();
 	void start();
-	const auto& get_fbref() { return output; }
-	bool next_framebulk();
+	const std::string& get_map_name();
+	const std::string& get_player_name();
+	int get_ai_count();
+	int get_num_laps();
+	const auto *get_framebulks();
 
 private:
-	struct IPCResult {
-		bool accel = false;
-		bool brake = false;
-		bool fire  = false;
-		bool nitro = false;
-		bool skid  = false;
-		int ticks = 0;
-		float angle = 0.0;
-	};
-
-	const char* PORT = "27016";
-	const int FB_SIZE = 8;
-	const __int64 mask_accel = 0x0010000000000000;
-	const __int64 mask_brake = 0x0008000000000000;
-	const __int64 mask_fire  = 0x0004000000000000;
-	const __int64 mask_nitro = 0x0002000000000000;
-	const __int64 mask_skid  = 0x0001000000000000;
-	const __int64 mask_ticks = 0x0000FFFF00000000;
-	const __int64 mask_angle = 0x00000000FFFFFFFF;
+	const char* PORT = "27015";
 
 	SOCKET listen_socket;
 	SOCKET client_socket;
-	IPCResult output;
+
+	std::string map_name;
+	std::string player_name;
+	int ai_count = 0;
+	int laps = 0;
+
+	const int FB_SIZE = 8;
 	char* buf = nullptr;
 	int pos = -1;
 	int buflen = -1;

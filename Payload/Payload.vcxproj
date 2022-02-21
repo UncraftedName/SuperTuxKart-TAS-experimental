@@ -81,6 +81,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\framebulk.cpp" />
     <ClCompile Include="src\hooks.cpp" />
     <ClCompile Include="src\ipc.cpp" />
     <ClCompile Include="src\minhook\src\buffer.c" />
@@ -92,6 +93,7 @@
     <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\framebulk.h" />
     <ClInclude Include="src\game_structures.h" />
     <ClInclude Include="src\hooks.h" />
     <ClInclude Include="src\ipc.h" />

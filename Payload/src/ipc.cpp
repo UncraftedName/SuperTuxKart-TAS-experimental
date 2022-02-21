@@ -1,14 +1,21 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <iostream>
+#include <vector>
+#include <string>
 
+#include "framebulk.h"
 #include "ipc.h"
 #include "utils.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
+
+// Constructs an IPC object. Handles creating and binding the socket. 
+// For accepting clients, see the IPC::start() function
 IPC::IPC() {
 	client_socket = INVALID_SOCKET;
+	listen_socket = INVALID_SOCKET;
 
 	WSADATA wsaData;
 
@@ -45,12 +52,18 @@ IPC::IPC() {
 	}
 }
 
+
+// IPC destructor. Cleans up memory and closes socket
 IPC::~IPC() {
 	WSACleanup();
 	if (listen_socket != INVALID_SOCKET)
 		closesocket(listen_socket);
 }
 
+
+// Listen for a client, and accept a single connection. Note that this function only accepts
+// one client at a time before returning. To accept multiple clients, it is the user's 
+// responsibility to place this start() call in a loop. 
 void IPC::start() {
 	if (buf != nullptr) {
 		delete[] buf;
@@ -73,15 +86,44 @@ void IPC::start() {
 		Exit(1, L"IPC: Failed to accept client");
 	}
 
-	int len = 0;
-	res = recv(client_socket, (char *) &len, 4, 0);
+	int header_len = 0;
+	res = recv(client_socket, (char *) &header_len, 4, 0);
 	if (res != 4) {
 		closesocket(listen_socket);
 		WSACleanup();
 		Exit(1, L"IPC: Failed to receive data from client");
 	}
 
-	buflen = ntohl(len);
+	char* header = new char[header_len];
+	res = recv(client_socket, header, header_len, 0);
+	if (res != header_len) {
+		closesocket(listen_socket);
+		WSACleanup();
+		Exit(1, L"IPC: Failed to receive data from client");
+	}
+
+	char* header_pos = header;
+	map_name.assign(header_pos);
+	while (*header_pos != '\0') {
+		header_pos++;
+	}
+	header_pos++;
+
+	player_name.assign(header_pos);
+	while (*header_pos != '\0') {
+		header_pos++;
+	}
+	header_pos++;
+
+	memcpy(&ai_count, header_pos, 4);
+	header_pos += 4;
+
+	memcpy(&laps, header_pos, 4);
+	header_pos += 4;
+
+	memcpy(&buflen, header_pos, 4);
+	delete[] header;
+
 	buf = new char[buflen];
 	res = recv(client_socket, buf, buflen, 0);
 	if (res != buflen) {
@@ -93,28 +135,32 @@ void IPC::start() {
 	pos = 0;
 }
 
-bool IPC::next_framebulk() {
-	if (buf == nullptr) {
-		return false;
-	}
+// Get the name of the map
+const std::string &IPC::get_map_name() {
+	return map_name;
+}
 
-	__int64 fb = 0;
-	memcpy(&fb, buf + pos, FB_SIZE);
-	fb = ntohll(fb);
-	pos += FB_SIZE;
-	if (pos == buflen) {
-		delete[] buf;
-		buf = nullptr;
-		pos = -1;
-		buflen = -1;
-	}
+// Get the name of the player's kart
+const std::string& IPC::get_player_name() {
+	return player_name;
+}
 
-	output.accel = fb & mask_accel;
-	output.brake = fb & mask_brake;
-	output.fire = fb & mask_fire;
-	output.nitro = fb & mask_nitro;
-	output.skid = fb & mask_skid;
-	output.angle = (float)(fb & mask_angle);
-	output.ticks = (int)((fb & mask_ticks) >> 32);
-	return true;
+// Get the number of AI opponents
+int IPC::get_ai_count() {
+	return ai_count;
+}
+
+// Get the number of laps
+int IPC::get_num_laps() {
+	return laps;
+}
+
+// Get all framebulks. Should only be called after start() has finished successfully.
+// Returns a pointer to a vector of Framebulks. It is the user's responsibility to free
+// this memory once done with it. If there is no framebulk data to return (start has not been called/
+// this function was already called before), returns null. 
+const auto *IPC::get_framebulks() {
+
+
+	return (std::vector<Framebulk> *)nullptr;
 }

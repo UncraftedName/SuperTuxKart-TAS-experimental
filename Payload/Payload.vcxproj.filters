@@ -39,6 +39,9 @@
     <ClCompile Include="src\ipc.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\framebulk.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\minhook\src\hde\hde32.h">
@@ -75,6 +78,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\ipc.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\framebulk.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
