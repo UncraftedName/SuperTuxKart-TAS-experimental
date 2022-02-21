@@ -6,7 +6,21 @@ void* g_mBase = nullptr;
 
 namespace hooks {
 
+	// globals
+	
+	RaceManager** g_race_manager = nullptr;
+	InputManager** input_manager = nullptr;
+	PlayerManager** m_player_manager = nullptr;
+	StateManager** state_manager_singleton = nullptr;
+
+	// pointers to game functions
+
 	_InputManager__input ORIG_InputManager__input = nullptr;
+	_InputManager__update ORIG_InputManager__update = nullptr;
+	_RaceManager__startSingleRace ORIG_RaceManager__startSingleRace = nullptr;
+	_DeviceManager__getLatestUsedDevice ORIG_DeviceManager__getLatestUsedDevice = nullptr;
+	_StateManager__createActivePlayer ORIG_StateManager__createActivePlayer = nullptr;
+	_RaceManager__setPlayerKart ORIG_RaceManager__setPlayerKart = nullptr;
 
 
 	// (copied doc string from MH_CreateHook)
@@ -36,13 +50,28 @@ namespace hooks {
 		#define SET_FUNC_PTR(name, offset) ORIG_##name = (_##name)FROM_BASE(offset);
 
 
+		// hook functions
 		MH_STATUS stat;
 		if (
 			(stat = MH_Initialize()) != MH_OK ||
 			FAILED_HOOK(InputManager__input, 0x17d690) ||
-			// add more hooks here
+			FAILED_HOOK(InputManager__update, 0x17ad70) ||
 			(stat = MH_ApplyQueued()) != MH_OK
 		) return stat;
+
+
+		// get plain function pointers (not hooks)
+		SET_FUNC_PTR(RaceManager__startSingleRace, 0x2f41b0);
+		SET_FUNC_PTR(DeviceManager__getLatestUsedDevice, 0x172020);
+		SET_FUNC_PTR(StateManager__createActivePlayer, 0x437640);
+		SET_FUNC_PTR(RaceManager__setPlayerKart, 0x2ed210);
+
+
+		// init global pointers
+		g_race_manager = (RaceManager**)FROM_BASE(0xc8f340);
+		input_manager = (InputManager**)FROM_BASE(0xc77e20);
+		m_player_manager = (PlayerManager**)FROM_BASE(0xc672e0);
+		state_manager_singleton = (StateManager**)FROM_BASE(0xca3400);
 
 
 		#undef FAILED_HOOK
@@ -53,7 +82,7 @@ namespace hooks {
 
 
 	// just inverts left/right arrow key movement (even in the menu)
-	EventPropagation DETOUR_InputManager__input(void* thisptr, SEvent& event) {
+	EventPropagation DETOUR_InputManager__input(InputManager* thisptr, SEvent& event) {
 		if (event.EventType == EET_KEY_INPUT_EVENT) {
 			if (event.KeyInput.Key == IRR_KEY_LEFT)
 				event.KeyInput.Key = IRR_KEY_RIGHT;
@@ -61,5 +90,41 @@ namespace hooks {
 				event.KeyInput.Key = IRR_KEY_LEFT;
 		}
 		return ORIG_InputManager__input(thisptr, event);
+	}
+
+
+	void LoadMap() {
+		/*
+		* This is equivalent to the following game code:
+		*
+		* auto device = input_manager->getDeviceManager()->getLatestUsedDevice();
+		* auto profile = PlayerManager::getCurrentPlayer();
+		* StateManager::get()->createActivePlayer(profile, device);
+		* RaceManager::get()->setPlayerKart(0, "tux");
+		* RaceManager::get()->setNumKarts(0);
+		* RaceManager::get()->setNumLaps(1);
+		* RaceManager::get()->startSingleRace("abyss", 1, false);
+		*/
+		auto device = ORIG_DeviceManager__getLatestUsedDevice((**input_manager).m_device_manager);
+		auto profile = (**m_player_manager).m_current_player;
+		ORIG_StateManager__createActivePlayer(*state_manager_singleton, profile, device);
+		ORIG_RaceManager__setPlayerKart(*g_race_manager, 0, "tux");
+		(**g_race_manager).setNumKarts(0);
+		// TODO set num laps
+		ORIG_RaceManager__startSingleRace(*g_race_manager, "abyss", 1, false);
+	}
+
+
+	static int mapLoadedCount = 0; // just for testing, remove this once we can send stuff through IPC
+
+	/*
+	* It doesn't really matter what this function does, what matters is when it's called. It's in the
+	* main engine loop and a bit before some inputs are handled. This is probably a nice place to send
+	* inputs to the game from as well as loading new maps and stuff.
+	*/
+	void DETOUR_InputManager__update(InputManager* thisptr, float dt) {
+		ORIG_InputManager__update(thisptr, dt);
+		if (mapLoadedCount++ < 1)
+			LoadMap();
 	}
 }

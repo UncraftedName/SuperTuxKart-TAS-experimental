@@ -14,6 +14,13 @@ namespace hooks {
 	MH_STATUS HookAll();
 
 
+	// globals
+	extern RaceManager** g_race_manager;
+	extern InputManager** input_manager;
+	extern PlayerManager** m_player_manager;
+	extern StateManager** state_manager_singleton;
+
+
 	// use this if you just want a function pointer
 	#define DECLARE_FUNC(name, ret, ...) \
 		typedef ret (*_##name)(__VA_ARGS__); \
@@ -27,5 +34,20 @@ namespace hooks {
 
 
 	// the main input function for the game
-	DECLARE_HOOK(InputManager__input, EventPropagation, void* thisptr, SEvent& event);
+	DECLARE_HOOK(InputManager__input, EventPropagation, InputManager* thisptr, SEvent& event);
+
+	// called once a tick(?) near GUI/Input stuff
+	DECLARE_HOOK(InputManager__update, void, InputManager* thisptr, float dt);
+
+	// starts a new track
+	DECLARE_FUNC(RaceManager__startSingleRace, void, RaceManager* thisptr, const std::str_wrap& track_ident, const int num_laps, bool from_overworld);
+
+	// probably returns keyboard, we need this to create an active player
+	DECLARE_FUNC(DeviceManager__getLatestUsedDevice, InputDevice*, DeviceManager* thisptr);
+
+	// adds a new entry to m_active_players in the state manager
+	DECLARE_FUNC(StateManager__createActivePlayer, int, StateManager* thisptr, PlayerProfile* profile, InputDevice* device);
+
+	// sets the kart for the given player profile
+	DECLARE_FUNC(RaceManager__setPlayerKart, void, RaceManager* thisptr, uint32_t player_id, const std::str_wrap& kart_name);
 }

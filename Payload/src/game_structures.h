@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 /*
 * Suppose we hook a function foo(SEvent& event). Internally, that just gets
@@ -11,11 +12,124 @@
 *
 *   Option 2: partially/fully copy the game's implementation of the SEvent struct.
 *     Then if we wanted to access the y position of the mouse cursor, we could just
-*     do e.MouseInput.Y like normal citizens of society.
+*     do event.MouseInput.Y like normal citizens of society.
 *
 * Option 1 is quicker if you don't have full access to the structure in question.
 * Option 2 is less abhorrent.
 */
+
+
+namespace std {
+
+	/*
+	* So... strings and vectors (and probably other std concoctions) don't work for
+	* us. For some reason which I can't really be bothered to figure out, the field
+	* offsets that we get when using good ol' std::string, etc. don't match up with
+	* what the game has, and are therefore not compatible. Even worse, sometimes
+	* the offsets are different in debug vs. release builds!! There are all manner
+	* of profanities I could use to express my dissatisfaction, but we'll just say
+	* that it makes me want to stand awkwardly close to a substantially tall cliff
+	* edge.
+	* 
+	* Anyways, these are meant to serve as replacements, and should be used in
+	* place of the normal std constructs whenever you call game functions or
+	* reconstruct game structures.
+	*/
+
+
+	// std::string replacement
+	struct str_wrap {
+
+		char* alias;
+		size_t size;
+		union {
+			size_t unknown;
+			char buf[16];
+		};
+
+		// std::string will store the string locally if it's less than 16 chars long
+		str_wrap(const char* str) {
+			size = strlen(str);
+			size_t capacity = size | 15; // rounds up to nearest 16 (-1) since alignment exists
+			if (size < 16) {
+				alias = buf;
+			} else {
+				alias = new char[capacity + 1]; // +1 for null terminator
+				unknown = size;
+			}
+			strcpy_s(alias, capacity, str);
+		}
+
+		~str_wrap() {
+			if (size >= 16)
+				delete alias;
+		}
+	};
+
+
+	// std::vector replacement
+	template <class T>
+	struct vec_wrap {
+		T *first, *last, *end;
+	};
+}
+
+
+enum Difficulty: uint32_t {
+	DIFFICULTY_EASY = 0,
+	DIFFICULTY_FIRST = DIFFICULTY_EASY,
+	DIFFICULTY_MEDIUM,
+	DIFFICULTY_HARD,
+	DIFFICULTY_BEST,
+	DIFFICULTY_LAST = DIFFICULTY_BEST,
+	DIFFICULTY_COUNT,
+	DIFFICULTY_NONE
+};
+
+enum AISuperPower: uint32_t {
+	SUPERPOWER_NONE = 0,
+	SUPERPOWER_NOLOK_BOSS = 1
+};
+
+
+struct DeviceManager;
+struct StateManager;
+struct InputDevice;
+struct PlayerProfile;
+
+struct InputManager {
+	char __pad[48];
+	DeviceManager* m_device_manager; // rel w/ debug puts this at 16
+};
+
+struct PlayerManager {
+	char __pad[24];
+	PlayerProfile* m_current_player;
+};
+
+// TODO this strucuture is probably incorrect
+// pretty much anything that's a vector in here is (probably) a list of what will happen for the next map(s), we only care about 1
+struct RaceManager {
+	char __pad0[32];
+	Difficulty m_difficulty;
+	char __pad1[36];
+	std::vec_wrap<std::str_wrap> m_tracks;
+	char __pad2[8];
+	std::vec_wrap<int> m_num_laps;
+	char __pad3[56]; // this has m_reverse_track list in it, but it seems like a vector<bool> is treated differently to a normal vector
+	std::str_wrap m_ai_kart_override;
+	AISuperPower m_ai_superpower;
+	char __pad4[4];
+	std::vec_wrap<std::str_wrap> m_ai_kart_list; // we might be able to use this to set the specific AI karts
+	char __pad5[208];
+	int m_num_karts;
+
+	void setNumKarts(int num) {
+		m_num_karts = num;
+		// m_ai_kart_override = ""; // TODO this doesn't work
+		m_ai_superpower = SUPERPOWER_NONE;
+	}
+};
 
 
 typedef unsigned __int32 u32;
