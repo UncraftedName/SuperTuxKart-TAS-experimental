@@ -39,7 +39,8 @@ __declspec(noreturn) void __stdcall Main(void* _) {
 
 	g_Info->ipc = new IPC();
 	g_Info->ipc->start();
-	Exit(1, L"I'm not supposed to get here...");
+	// IPC::buf now has map name
+	Exit(0, L"Received Data");
 }
 
 

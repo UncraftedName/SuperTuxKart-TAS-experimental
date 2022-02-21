@@ -73,15 +73,15 @@ void IPC::start() {
 		Exit(1, L"IPC: Failed to accept client");
 	}
 
-	__int64 len = 0;
-	res = recv(client_socket, (char *) &len, 8, 0);
-	if (res != 8) {
+	int len = 0;
+	res = recv(client_socket, (char *) &len, 4, 0);
+	if (res != 4) {
 		closesocket(listen_socket);
 		WSACleanup();
 		Exit(1, L"IPC: Failed to receive data from client");
 	}
 
-	buflen = ntohll(len);
+	buflen = ntohl(len);
 	buf = new char[buflen];
 	res = recv(client_socket, buf, buflen, 0);
 	if (res != buflen) {

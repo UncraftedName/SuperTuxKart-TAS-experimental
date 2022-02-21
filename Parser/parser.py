@@ -13,6 +13,8 @@ import pathlib
 import json
 import re
 
+from client import Client_Socket
+
 test_path = "./test/tasfile"
 
 def processTASFields(fields):
@@ -96,7 +98,7 @@ def processTASLines(data):
 
     return tasData
 
-def removeComments(string): # literally hear just to remove comments :P
+def removeComments(string): # Removes all comments from script
     return string[:string.find("//")]
 
 def parseTAS(tasFile):
@@ -122,16 +124,17 @@ def parseTAS(tasFile):
     return processTASLines(data)
 
 
-
-
-    
-
-
 def main():
     """
     """
     global test_path
     tasInfo = parseTAS(test_path)
+
+    # Open Client socket and send data to Payload
+    sock = Client_Socket()
+    sock.start()
+    msg = bytes(tasInfo, encoding='utf-8')
+    sock.send(msg)
 
     with open('tasData.json', 'w') as file:
         json.dump(tasInfo, file)
