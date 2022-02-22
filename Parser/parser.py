@@ -15,7 +15,7 @@ import struct
 
 from client import Client_Socket
 
-test_path = "./test/tasfile"
+test_path = "./test/tasfile.peng"
 
 def strToBytes(s):
     return s.encode('utf-8') + b'\x00'
