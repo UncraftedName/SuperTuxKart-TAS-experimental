@@ -18,16 +18,16 @@ from client import Client_Socket
 
 test_path = "./test/tasfile.peng"
 
-def strToBytes(s) -> bytes:
+def encodeStr(s):
     return s.encode('utf-8') + b'\x00'
 
-def intToTwoBytes(n) -> bytes:
+def encodeShort(n):
     return struct.pack('h', n)
 
-def intToFourBytes(n) -> bytes:
+def encodeInt(n):
     return struct.pack('i', n)
 
-def floatToBytes(f) -> bytes:
+def encodeFloat(f):
     return struct.pack('f', f)
 
 
@@ -58,9 +58,9 @@ def fieldsToBytes(fields) -> bytes:
     # unused + flags -> 16 bits
     out = struct.pack('h', field_bits)
     # ticks field
-    out += intToTwoBytes(int(ticks))
+    out += encodeShort(int(ticks))
     # turning angle
-    out += floatToBytes(float(ang))
+    out += encodeFloat(float(ang))
     return out
 
 
@@ -73,7 +73,7 @@ def processTASHeader(header):
     if not results: # check if list is empty
         print("Warning: Value for map not found.")
         return
-    bit_output = strToBytes(results[0])
+    bit_output = encodeStr(results[0])
     header_bit_array += bit_output
 
 
@@ -81,7 +81,7 @@ def processTASHeader(header):
     if not results: # check if list is empty
         print("Warning: Value for kart_name not found.")
         return
-    bit_output = strToBytes(results[0])
+    bit_output = encodeStr(results[0])
     header_bit_array += bit_output
 
 
@@ -89,7 +89,7 @@ def processTASHeader(header):
     if not results: # check if list is empty
         print("Warning: Value for num_ai_karts not found.")
         return
-    bit_output = intToFourBytes(int(results[0]))
+    bit_output = encodeInt(int(results[0]))
     header_bit_array += bit_output
 
 
@@ -97,10 +97,10 @@ def processTASHeader(header):
     if not results: # check if list is empty
         print("Warning: Value for num_laps not found.")
         return
-    bit_output = intToFourBytes(int(results[0]))
+    bit_output = encodeInt(int(results[0]))
     header_bit_array += bit_output
 
-    header_length_bytes = intToFourBytes(len(header_bit_array) + 4)
+    header_length_bytes = encodeInt(len(header_bit_array) + 4)
     return header_length_bytes + header_bit_array
 
 
@@ -138,7 +138,7 @@ def processTASLines(data):
 
     # print("payload: ", payload)
     # print("length of payload: ", len(payload))
-    payload_length_bits = intToFourBytes(len(payload))
+    payload_length_bits = encodeInt(len(payload))
     return header + payload_length_bits + payload
 
 def removeComments(string): # Removes all comments from script

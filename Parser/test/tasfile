@@ -1,0 +1,7 @@
+map "Ocean"
+kart_name "Tux"
+num_ai_karts "0"
+num_laps "3"
+
+frames
+--|---|0|0|
