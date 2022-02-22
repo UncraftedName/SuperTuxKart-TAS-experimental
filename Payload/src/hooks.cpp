@@ -21,6 +21,7 @@ namespace hooks {
 	_DeviceManager__getLatestUsedDevice ORIG_DeviceManager__getLatestUsedDevice = nullptr;
 	_StateManager__createActivePlayer ORIG_StateManager__createActivePlayer = nullptr;
 	_RaceManager__setPlayerKart ORIG_RaceManager__setPlayerKart = nullptr;
+	_DeviceManager__setAssignMode ORIG_DeviceManager__setAssignMode = nullptr;
 
 
 	// (copied doc string from MH_CreateHook)
@@ -65,6 +66,7 @@ namespace hooks {
 		SET_FUNC_PTR(DeviceManager__getLatestUsedDevice, 0x172020);
 		SET_FUNC_PTR(StateManager__createActivePlayer, 0x437640);
 		SET_FUNC_PTR(RaceManager__setPlayerKart, 0x2ed210);
+		SET_FUNC_PTR(DeviceManager__setAssignMode, 0x171990);
 
 
 		// init global pointers
@@ -105,6 +107,7 @@ namespace hooks {
 		* RaceManager::get()->setNumLaps(1);
 		* RaceManager::get()->startSingleRace("abyss", 1, false);
 		*/
+		ORIG_DeviceManager__setAssignMode((**input_manager).m_device_manager, ASSIGN);
 		auto device = ORIG_DeviceManager__getLatestUsedDevice((**input_manager).m_device_manager);
 		auto profile = (**m_player_manager).m_current_player;
 		ORIG_StateManager__createActivePlayer(*state_manager_singleton, profile, device);

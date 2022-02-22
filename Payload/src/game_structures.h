@@ -1,5 +1,5 @@
 #pragma once
-#include <string>
+#include <stdint.h>
 
 /*
 * Suppose we hook a function foo(SEvent& event). Internally, that just gets
@@ -43,7 +43,7 @@ namespace std {
 		char* alias;
 		size_t size;
 		union {
-			size_t unknown;
+			size_t unknown; // seems to copy from size when buf is not used
 			char buf[16];
 		};
 
@@ -89,6 +89,12 @@ enum Difficulty: uint32_t {
 enum AISuperPower: uint32_t {
 	SUPERPOWER_NONE = 0,
 	SUPERPOWER_NOLOK_BOSS = 1
+};
+
+enum PlayerAssignMode {
+	NO_ASSIGN,  //!< react to all devices
+	DETECT_NEW, //!< notify the manager when an inactive device is being asked to activate with fire
+	ASSIGN      //!< only react to assigned devices
 };
 
 

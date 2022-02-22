@@ -50,4 +50,7 @@ namespace hooks {
 
 	// sets the kart for the given player profile
 	DECLARE_FUNC(RaceManager__setPlayerKart, void, RaceManager* thisptr, uint32_t player_id, const std::str_wrap& kart_name);
+
+	// sets assign mode for input devices (we need to set this so that the game can map our inputs to a specific player)
+	DECLARE_FUNC(DeviceManager__setAssignMode, void, DeviceManager* thisptr, const PlayerAssignMode assignMode);
 }
