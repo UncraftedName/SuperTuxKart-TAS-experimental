@@ -71,7 +71,8 @@ void IPC::start() {
 		pos = -1;
 		buflen = -1;
 	}
-
+	
+	// Initializes buffer supporting 1 incoming connection
 	int res = listen(listen_socket, 1);
 	if (res == SOCKET_ERROR) {
 		closesocket(listen_socket);
@@ -79,12 +80,14 @@ void IPC::start() {
 		Exit(1, L"IPC: Listen failed");
 	}
 
+	// Wait for an incoming client socket
 	client_socket = accept(listen_socket, nullptr, nullptr);
 	if (client_socket == INVALID_SOCKET) {
 		closesocket(listen_socket);
 		WSACleanup();
 		Exit(1, L"IPC: Failed to accept client");
 	}
+
 
 	int header_len = 0;
 	res = recv(client_socket, (char *) &header_len, 4, 0);
@@ -121,8 +124,14 @@ void IPC::start() {
 	memcpy(&laps, header_pos, 4);
 	header_pos += 4;
 
-	memcpy(&buflen, header_pos, 4);
 	delete[] header;
+
+	res = recv(client_socket, (char*)&buflen, 4, 0);
+	if (res != 4) {
+		closesocket(listen_socket);
+		WSACleanup();
+		Exit(1, L"IPC: Failed to receive data from client");
+	}
 
 	buf = new char[buflen];
 	res = recv(client_socket, buf, buflen, 0);

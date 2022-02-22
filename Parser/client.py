@@ -11,7 +11,7 @@
 import socket
 import struct
 
-addr = ("127.0.0.1", 27016) # IPC connection address
+addr = ("127.0.0.1", 27015) # IPC connection address
 
 
 class Client_Socket:
@@ -65,8 +65,8 @@ class Client_Socket:
         """
         # Send the length of the message as four bytes, followed by the full message
         # Convert message length from host to network endian
-        msg_len = struct.pack("i", socket.htonl(len(msg)))
-        self.client_socket.send(msg_len)
+        #msg_len = struct.pack("i", len(msg))
+        #self.client_socket.send(msg_len)
         self.client_socket.send(msg)
         
 
@@ -81,7 +81,6 @@ class Client_Socket:
         """
         # stores the number of bytes in message into msg_len
         msg_len = struct.unpack("i", self.client_socket.recv(4))
-        msg_len = socket.ntohl(msg_len) # Convert from network to host endian
         if len(msg) <= 0:
             print("Error: Invalid message received from server")
             exit(1)

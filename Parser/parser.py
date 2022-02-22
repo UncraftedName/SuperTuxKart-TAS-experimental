@@ -17,34 +17,18 @@ from client import Client_Socket
 
 test_path = "./test/tasfile"
 
-def strToBits(string):
-    """
-    """
-    return string.encode('utf-8') + b'\x00'
+def strToBytes(s):
+    return s.encode('utf-8') + b'\x00'
 
-def intToFourBits(integer):
-    """
-    """
-    bits = struct.pack('i', integer)
-    if len(bits) < 4:
-        bits = (b'0' * (4 - len(bits))) + bits
-    return bits
+def intToTwoBytes(n):
+    return struct.pack('h', n)
 
-def intToSixteenBits(integer):
-    bits = struct.pack('i', integer)
-    if len(bits) < 16:
-        bits = (b'0' * (16 - len(bits))) + bits
-    return bits
+def intToFourBytes(n):
+    return struct.pack('i', n)
 
-def floatToBits(float):
-    """
-    """
-    bits = struct.pack('f', float)
-    if len(bits) < 32:
-        bits = (b'0' * (32 - len(bits))) + bits
-    print("length of bits in float:", len(bits))
-    print("bits: ", bits)
-    return bits
+def floatToBytes(f):
+    return struct.pack('f', f)
+
 
 def processTASFields(fields):
     """process each field and extract information returning
@@ -89,13 +73,14 @@ def processTASFields(fields):
         fields_bit_array += b'0'
     print("length 1: ", len(fields_bit_array))
     # process ticks field
-    fields_bit_array += intToSixteenBits(int(ticks))
+    fields_bit_array += intToTwoBytes(int(ticks))
     print("length 2: ", len(fields_bit_array))
 
     # process turning angle
-    fields_bit_array += floatToBits(float(ang))
+    fields_bit_array += floatToBytes(float(ang))
     print("length 3: ", len(fields_bit_array))
     return fields_bit_array
+
 
 def processTASHeader(header):
     """
@@ -106,7 +91,7 @@ def processTASHeader(header):
     if not results: # check if list is empty
         print("Warning: Value for map not found.")
         return
-    bit_output = strToBits(results[0])
+    bit_output = strToBytes(results[0])
     header_bit_array += bit_output
 
 
@@ -114,7 +99,7 @@ def processTASHeader(header):
     if not results: # check if list is empty
         print("Warning: Value for kart_name not found.")
         return
-    bit_output = strToBits(results[0])
+    bit_output = strToBytes(results[0])
     header_bit_array += bit_output
 
 
@@ -122,7 +107,7 @@ def processTASHeader(header):
     if not results: # check if list is empty
         print("Warning: Value for num_ai_karts not found.")
         return
-    bit_output = intToFourBits(int(results[0]))
+    bit_output = intToFourBytes(int(results[0]))
     if len(bit_output) > 4:
         print("warning: Value for num_ai_karts is invalid.")
     header_bit_array += bit_output
@@ -132,23 +117,20 @@ def processTASHeader(header):
     if not results: # check if list is empty
         print("Warning: Value for num_laps not found.")
         return
-    bit_output = intToFourBits(int(results[0]))
+    bit_output = intToFourBytes(int(results[0]))
     if len(bit_output) > 4:
         print("warning: Value for num_laps is invalid.")
     header_bit_array += bit_output
 
     header_length = len(header_bit_array)
     # print("header_length: ", header_length)
-    header_length_bits = intToFourBits(header_length)
+    header_length_bits = intToFourBytes(header_length)
     # print("header_length bits: ", header_length_bits)
     if len(header_length_bits) > 4:
         print("warning: Header is too large. Exiting...")
         exit()
 
     return header_length_bits + header_bit_array
-
-
-
 
 
 def processTASLines(data):
@@ -162,11 +144,7 @@ def processTASLines(data):
     Return:
     Dictionary -- dictionary containing all data in parsed TAS script
     """
-    # print(data)
-    tasData = b''
     header = processTASHeader(data[:4])
-    # print("header: ", header)
-    tasData += header
     # begin parsing framebulks
     if not "frames" in data[4]:
         print("Error: Did not find start of framebulks. Exiting...")
@@ -189,8 +167,8 @@ def processTASLines(data):
 
     # print("payload: ", payload)
     # print("length of payload: ", len(payload))
-    payload_length_bits = intToFourBits(len(payload))
-    return tasData + payload_length_bits + payload
+    payload_length_bits = intToFourBytes(len(payload))
+    return header + payload_length_bits + payload
 
 def removeComments(string): # Removes all comments from script
     return string[:string.find("//")]
@@ -228,9 +206,8 @@ def main():
     # Open Client socket and send data to Payload
     sock = Client_Socket()
     sock.start()
-    msg = bytes(tasInfo, encoding='utf-8')
-    sock.send(msg)
-    
+    sock.send(tasInfo)
+
 
 if __name__ == "__main__":
     main()
