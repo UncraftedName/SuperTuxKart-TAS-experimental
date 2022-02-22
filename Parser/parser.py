@@ -10,12 +10,41 @@
 # ==================================
 
 import pathlib
-import json
 import re
+import struct
 
 from client import Client_Socket
 
 test_path = "./test/tasfile"
+
+def strToBits(string):
+    """
+    """
+    return string.encode('utf-8') + b'\x00'
+
+def intToFourBits(integer):
+    """
+    """
+    bits = struct.pack('i', integer)
+    if len(bits) < 4:
+        bits = (b'0' * (4 - len(bits))) + bits
+    return bits
+
+def intToSixteenBits(integer):
+    bits = struct.pack('i', integer)
+    if len(bits) < 16:
+        bits = (b'0' * (16 - len(bits))) + bits
+    return bits
+
+def floatToBits(float):
+    """
+    """
+    bits = struct.pack('f', float)
+    if len(bits) < 32:
+        bits = (b'0' * (32 - len(bits))) + bits
+    print("length of bits in float:", len(bits))
+    print("bits: ", bits)
+    return bits
 
 def processTASFields(fields):
     """process each field and extract information returning
@@ -28,35 +57,99 @@ def processTASFields(fields):
     Return:
     Dictionary -- dictionary containing info on framebulk
     """
+    fields_bit_array = b'00000000000'
+    print("length 0: ", len(fields_bit_array))
     acc     = fields[0]
     misc    = fields[1]
     ang     = fields[2]
     ticks   = fields[3]
 
     # process acceleration fields
-    accelerate = True if acc[0] == 'a' else False
-    decelerate = True if acc[1] == 'b' else False
+    if acc[0] == 'a':
+        fields_bit_array += b'1'
+    else:
+        fields_bit_array += b'0'
+    if acc[1] == 'b':
+        fields_bit_array += b'1'
+    else:
+        fields_bit_array += b'0'
 
     # process mischelleneous fields
-    fire = True if misc[0] == 'f' else False
-    nitro = True if misc[1] == 'n' else False
-    skid = True if misc[2] == 's' else False
+    if misc[0] == 'f':
+        fields_bit_array += b'1'
+    else:
+        fields_bit_array += b'0'
+    if misc[1] == 'n':
+        fields_bit_array += b'1'
+    else:
+        fields_bit_array += b'0'
+    if misc[2] == 's':
+        fields_bit_array += b'1'
+    else:
+        fields_bit_array += b'0'
+    print("length 1: ", len(fields_bit_array))
+    # process ticks field
+    fields_bit_array += intToSixteenBits(int(ticks))
+    print("length 2: ", len(fields_bit_array))
 
     # process turning angle
-    angleMag = float(ang)
+    fields_bit_array += floatToBits(float(ang))
+    print("length 3: ", len(fields_bit_array))
+    return fields_bit_array
 
-    # process ticks field
-    numTicks = int(ticks)
+def processTASHeader(header):
+    """
+    """
+    header_bit_array = b''
 
-    return {
-        "accelerate"    : accelerate,
-        "decelerate"    : decelerate,
-        "fire"          : fire,
-        "nitro"         : nitro,
-        "skid"          : skid,
-        "angleMag"      : angleMag,
-        "numTicks"      : numTicks
-    }
+    results = re.findall("map \"([A-z ]+)\"", header[0])
+    if not results: # check if list is empty
+        print("Warning: Value for map not found.")
+        return
+    bit_output = strToBits(results[0])
+    header_bit_array += bit_output
+
+
+    results = re.findall("kart_name \"([A-z ]+)\"", header[1])
+    if not results: # check if list is empty
+        print("Warning: Value for kart_name not found.")
+        return
+    bit_output = strToBits(results[0])
+    header_bit_array += bit_output
+
+
+    results = re.findall("num_ai_karts \"([\d]+)\"", header[2])
+    if not results: # check if list is empty
+        print("Warning: Value for num_ai_karts not found.")
+        return
+    bit_output = intToFourBits(int(results[0]))
+    if len(bit_output) > 4:
+        print("warning: Value for num_ai_karts is invalid.")
+    header_bit_array += bit_output
+
+
+    results = re.findall("num_laps \"(-?[\d]+)\"", header[3])
+    if not results: # check if list is empty
+        print("Warning: Value for num_laps not found.")
+        return
+    bit_output = intToFourBits(int(results[0]))
+    if len(bit_output) > 4:
+        print("warning: Value for num_laps is invalid.")
+    header_bit_array += bit_output
+
+    header_length = len(header_bit_array)
+    # print("header_length: ", header_length)
+    header_length_bits = intToFourBits(header_length)
+    # print("header_length bits: ", header_length_bits)
+    if len(header_length_bits) > 4:
+        print("warning: Header is too large. Exiting...")
+        exit()
+
+    return header_length_bits + header_bit_array
+
+
+
+
 
 def processTASLines(data):
     """process lines from TAS script and return information
@@ -69,34 +162,35 @@ def processTASLines(data):
     Return:
     Dictionary -- dictionary containing all data in parsed TAS script
     """
-    tasData = {}
-    print(data)
-
-    # search for map
-    results = re.findall("map <([A-z ]+)>", data[0])
-    if not results: # check if list is empty
-        print("Warning: Map not found.")
-    tasData['map'] = results[0]
+    # print(data)
+    tasData = b''
+    header = processTASHeader(data[:4])
+    # print("header: ", header)
+    tasData += header
     # begin parsing framebulks
-    if not "frames" in data[1]:
+    if not "frames" in data[4]:
         print("Error: Did not find start of framebulks. Exiting...")
         exit(-1)
-    tasData['frame_bulks'] = []
     # syntax for framebulks:
     # --|---|-|0|
     # - indicate a field
     # 0 indicates number of ticks
+    payload = b''
     line_num = 3
-    for line in data[2:]:
+    for line in data[5:]:
         line_num += 1
-        fields = [x for x in line.split("|") if not x.isspace()] # removes spaces from list elems
+        print("line: \"" + str(line) + "\"")
+        fields = [x for x in line.split("|") if x and not x.isspace()] # removes spaces from list elems
         print("fields: ", fields)
         if len(fields) != 4:
-            print("Warning: Error parsing framebulk (line " + str(line_num) + "). Skipping...")
-            continue
-        tasData['frame_bulks'].append(processTASFields(fields))
+            print("Warning: Error parsing framebulk (line " + str(line_num) + "). Exiting...")
+            exit()
+        payload += processTASFields(fields)
 
-    return tasData
+    # print("payload: ", payload)
+    # print("length of payload: ", len(payload))
+    payload_length_bits = intToFourBits(len(payload))
+    return tasData + payload_length_bits + payload
 
 def removeComments(string): # Removes all comments from script
     return string[:string.find("//")]
@@ -129,15 +223,13 @@ def main():
     """
     global test_path
     tasInfo = parseTAS(test_path)
+    print("final tas bitarray:", tasInfo)
 
     # Open Client socket and send data to Payload
     sock = Client_Socket()
     sock.start()
     msg = bytes(tasInfo, encoding='utf-8')
     sock.send(msg)
-
-    with open('tasData.json', 'w') as file:
-        json.dump(tasInfo, file)
     
 
 if __name__ == "__main__":
