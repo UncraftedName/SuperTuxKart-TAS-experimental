@@ -27,6 +27,5 @@ private:
 
 	const int FB_SIZE = 8;
 	char* buf = nullptr;
-	int pos = -1;
 	int buflen = -1;
 };

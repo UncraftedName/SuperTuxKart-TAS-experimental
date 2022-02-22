@@ -68,7 +68,6 @@ void IPC::start() {
 	if (buf != nullptr) {
 		delete[] buf;
 		buf = nullptr;
-		pos = -1;
 		buflen = -1;
 	}
 	
@@ -141,7 +140,6 @@ void IPC::start() {
 		delete[] buf;
 		Exit(1, L"IPC: Failed to receive data from client");
 	}
-	pos = 0;
 }
 
 // Get the name of the map
@@ -169,7 +167,22 @@ int IPC::get_num_laps() {
 // this memory once done with it. If there is no framebulk data to return (start has not been called/
 // this function was already called before), returns null. 
 const auto *IPC::get_framebulks() {
+	if (buf == nullptr) {
+		return (std::vector<Framebulk> *)nullptr;
+	}
 
+	int pos = 0;
+	std::vector<Framebulk>* framebulks = new std::vector<Framebulk>;
+	while (pos < buflen) {
+		__int64 framebulk_bytes = 0;
+		memcpy(&framebulk_bytes, buf + pos, FB_SIZE);
+		framebulks->push_back(Framebulk(framebulk_bytes));
+		pos += FB_SIZE;
+	}
 
-	return (std::vector<Framebulk> *)nullptr;
+	delete[] buf;
+	buflen = -1;
+	buf = nullptr;
+
+	return framebulks;
 }
