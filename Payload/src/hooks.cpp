@@ -1,4 +1,5 @@
 #include "hooks.h"
+#include "utils.h"
 
 
 void* g_mBase = nullptr;
@@ -83,42 +84,15 @@ namespace hooks {
 	}
 
 
-	// just inverts left/right arrow key movement (even in the menu)
 	EventPropagation DETOUR_InputManager__input(InputManager* thisptr, SEvent& event) {
-		if (event.EventType == EET_KEY_INPUT_EVENT) {
-			if (event.KeyInput.Key == IRR_KEY_LEFT)
-				event.KeyInput.Key = IRR_KEY_RIGHT;
-			else if (event.KeyInput.Key == IRR_KEY_RIGHT)
-				event.KeyInput.Key = IRR_KEY_LEFT;
-		}
+		// don't accept inputs if we're running a script
+		if (event.EventType == EET_KEY_INPUT_EVENT &&
+			event.KeyInput.Key != IRR_KEY_ESCAPE &&
+			g_Info->script_mgr.running_script()
+		) return EVENT_BLOCK_BUT_HANDLED;
+
 		return ORIG_InputManager__input(thisptr, event);
 	}
-
-
-	void LoadMap() {
-		/*
-		* This is equivalent to the following game code:
-		*
-		* auto device = input_manager->getDeviceManager()->getLatestUsedDevice();
-		* auto profile = PlayerManager::getCurrentPlayer();
-		* StateManager::get()->createActivePlayer(profile, device);
-		* RaceManager::get()->setPlayerKart(0, "tux");
-		* RaceManager::get()->setNumKarts(0);
-		* RaceManager::get()->setNumLaps(1);
-		* RaceManager::get()->startSingleRace("abyss", 1, false);
-		*/
-		ORIG_DeviceManager__setAssignMode((**input_manager).m_device_manager, ASSIGN);
-		auto device = ORIG_DeviceManager__getLatestUsedDevice((**input_manager).m_device_manager);
-		auto profile = (**m_player_manager).m_current_player;
-		ORIG_StateManager__createActivePlayer(*state_manager_singleton, profile, device);
-		ORIG_RaceManager__setPlayerKart(*g_race_manager, 0, "tux");
-		(**g_race_manager).setNumKarts(0);
-		// TODO set num laps
-		ORIG_RaceManager__startSingleRace(*g_race_manager, "abyss", 1, false);
-	}
-
-
-	static int tick = 0;
 
 	/*
 	* It doesn't really matter what this function does, what matters is when it's called. It's in the
@@ -127,19 +101,6 @@ namespace hooks {
 	*/
 	void DETOUR_InputManager__update(InputManager* thisptr, float dt) {
 		ORIG_InputManager__update(thisptr, dt);
-		if (tick++ < 1)
-			LoadMap();
-		else {
-			SEvent e;
-			e.EventType = EET_KEY_INPUT_EVENT;
-			auto& eki = e.KeyInput;
-			eki.Char = 0;
-			eki.Key = IRR_KEY_UP;
-			eki.SystemKeyCode = 0;
-			eki.PressedDown = 1;
-			eki.Shift = 0;
-			eki.Control = 0;
-			ORIG_InputManager__input(*input_manager, e);
-		}
+		g_Info->script_mgr.tick_signal();
 	}
 }

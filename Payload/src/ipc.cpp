@@ -120,7 +120,7 @@ void IPC::accept_loop() {
 		script->fill_framebulk_data(buf, bufLen);
 		delete[] buf;
 
-		g_Info->script_status.set_new_script(script);
+		g_Info->script_mgr.set_new_script(script);
 		g_Info->script_data = nullptr;
 	}
 }

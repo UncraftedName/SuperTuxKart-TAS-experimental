@@ -24,7 +24,7 @@ public:
 	// singleton ipc object
 	IPC ipc;
 	// single object to keep track of where we are in the TAS script
-	ScriptStatus script_status;
+	ScriptManager script_mgr;
 	// temporary place for IPC to put its new script before giving it to the status object
 	ScriptData* script_data = nullptr;
 

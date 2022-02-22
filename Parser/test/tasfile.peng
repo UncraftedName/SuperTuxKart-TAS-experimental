@@ -1,9 +1,23 @@
-map          "a great map"
-kart_name    "a great kart"
+map          "abyss"
+kart_name    "tux"
 num_ai_karts 0
 num_laps     1
 
-frames
---|---|0|500|
-a-|-n-|6|20|
--b|-n-|-5|100|
+frames // ab|fns|angle|ticks|
+--|---|0|300| // wait
+a-|---|0|370|
+
+a-|---|-1|40| // turn to left
+a-|---|0|95|
+
+a-|---|1|30| // turn towards nitrous
+a-|---|0|70|
+
+a-|---|1|25| // adjust for second nitrous
+a-|---|0|45|
+
+a-|---|1|25| // adjust for third nitrous
+a-|---|0|40|
+
+a-|-ns|1|25| // fast
+a-|-n-|0|100|

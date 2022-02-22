@@ -2,27 +2,35 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include "game_structures.h"
 
 class Framebulk {
 public:
+	float turn_angle;
+	uint16_t num_ticks;
 	union {
 		struct {
-			float angle;
-			short numTicks;
 			bool accel : 1;
 			bool brake : 1;
 			bool fire  : 1;
 			bool nitro : 1;
 			bool skid  : 1;
 		};
-		__int64 __val;
+		uint16_t flags;
 	};
 
-	Framebulk(char* buf) {
-		this->__val = *(__int64*)buf;
-	}
-
+	// size of a framebulk when set over network
 	static const int FB_SIZE_BYTES = 8;
+
+	static const int NUM_FLAGS = 5;
+
+	Framebulk() = default;
+
+	Framebulk(char* buf) {
+		turn_angle = *(float*)buf;
+		num_ticks = *(uint16_t*)(buf + 4);
+		flags = *(uint16_t*)(buf + 6);
+	}
 
 private:
 	// probably won't be used
@@ -48,43 +56,43 @@ public:
 };
 
 
-class ScriptStatus {
+class ScriptManager {
 
 private:
 
 	// header/framebulks
 	ScriptData* script_data = nullptr;
-	// use when accessing anything in this class, since that might happen from game threads
+	// use when accessing script_data, since we might to do that from game threads & the IPC connection
 	std::mutex script_mutex;
 	// we have a script that is currently being executed
-	volatile bool has_active_script = false;
+	bool has_active_script = false;
 	// we've loaded the map in the TAS script
-	volatile bool map_loaded = false;
-	// the tick that we're on in the script
-	volatile int tick = 0;
+	bool map_loaded = false;
+	// the tick that we're on in current framebulk
+	int fb_tick = 0;
+	// the framebulk index that we're on
+	int fb_idx = 0;
+
+	// only handles key codes, TODO: doesn't handle controller inputs
+	void send_game_input(EKEY_CODE key, bool key_pressed);
+
+	void load_map();
 
 public:
 
-	~ScriptStatus() {
+	~ScriptManager() {
 		/*
-		* These locks are probably redundant, this destructor can in theory be called at any
-		* time from Exit(), but the game can acquire these locks at any time which is
-		* undefined behavior or something anyways.
+		* Puttint locks here would probably be redundant, this destructor can in theory be called at
+		* any time from Exit(), but the game can acquire the locks at any time which would result in
+		* us freeing acquired locks which is undefined behavior or something anyways.
 		*/
-		script_mutex.lock();
 		delete script_data;
-		script_mutex.unlock();
 	}
 
-	void set_new_script(ScriptData* data) {
-		script_mutex.lock();
-		delete script_data;
-		script_data = data;
-		has_active_script = true;
-		map_loaded = false;
-		tick = 0;
-		script_mutex.unlock();
-	}
+	bool running_script() {return has_active_script;}
+
+	// we've just parsed a new script via IPC
+	void set_new_script(ScriptData* data);
 
 	// signal that we're on a new game tick
 	void tick_signal();

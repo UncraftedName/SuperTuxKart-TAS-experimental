@@ -154,7 +154,12 @@ enum ETOUCH_INPUT_EVENT;
 enum ELOG_LEVEL;
 enum ESYSTEM_EVENT_TYPE;
 enum EAPPLICATION_EVENT_TYPE;
-enum EventPropagation;
+
+enum EventPropagation {
+	EVENT_BLOCK,
+	EVENT_BLOCK_BUT_HANDLED,
+	EVENT_LET
+};
 
 
 enum EEVENT_TYPE {
