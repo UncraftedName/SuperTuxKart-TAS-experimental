@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-#include "framebulk.h"
+#include "script_data.h"
 #include "ipc.h"
 #include "utils.h"
 
@@ -50,6 +50,14 @@ IPC::IPC() {
 		WSACleanup();
 		Exit(1, L"IPC: Error binding listen socket");
 	}
+
+	// Initializes buffer supporting 1 incoming connection
+	res = listen(listen_socket, 1);
+	if (res == SOCKET_ERROR) {
+		closesocket(listen_socket);
+		WSACleanup();
+		Exit(1, L"IPC: Listen failed");
+	}
 }
 
 
@@ -64,125 +72,64 @@ IPC::~IPC() {
 // Listen for a client, and accept a single connection. Note that this function only accepts
 // one client at a time before returning. To accept multiple clients, it is the user's 
 // responsibility to place this start() call in a loop. 
-void IPC::start() {
-	if (buf != nullptr) {
+void IPC::accept_loop() {
+
+	// TODO: would be nice to have an exit condition for this
+	for (;;) {
+
+		// Wait for an incoming client socket
+		client_socket = accept(listen_socket, nullptr, nullptr);
+		if (client_socket == INVALID_SOCKET) {
+			closesocket(listen_socket);
+			WSACleanup();
+			Exit(1, L"IPC: Failed to accept client");
+		}
+
+		int header_len = 0;
+		recv_next((char*)&header_len, 4);
+
+		char* header = new char[header_len];
+		recv_next(header, header_len);
+		char* header_pos = header;
+
+		// read header fields 
+
+		ScriptData* script = g_Info->script_data = new ScriptData();
+
+		script->map_name.assign(header_pos);
+		header_pos += script->map_name.length() + 1;
+
+		script->player_name.assign(header_pos);
+		header_pos += script->player_name.length() + 1;
+
+		script->ai_count = *(int*)header_pos;
+		header_pos += 4;
+
+		script->laps = *(int*)header_pos;
+		header_pos += 4;
+
+		delete[] header;
+		
+		// read framebulk data
+
+		int bufLen = 0;
+		recv_next((char*)&bufLen, 4);
+		char* buf = new char[bufLen];
+		recv_next(buf, bufLen);
+
+		script->fill_framebulk_data(buf, bufLen);
 		delete[] buf;
-		buf = nullptr;
-		buflen = -1;
-	}
-	
-	// Initializes buffer supporting 1 incoming connection
-	int res = listen(listen_socket, 1);
-	if (res == SOCKET_ERROR) {
-		closesocket(listen_socket);
-		WSACleanup();
-		Exit(1, L"IPC: Listen failed");
-	}
 
-	// Wait for an incoming client socket
-	client_socket = accept(listen_socket, nullptr, nullptr);
-	if (client_socket == INVALID_SOCKET) {
-		closesocket(listen_socket);
-		WSACleanup();
-		Exit(1, L"IPC: Failed to accept client");
+		g_Info->script_status.set_new_script(script);
+		g_Info->script_data = nullptr;
 	}
+}
 
-
-	int header_len = 0;
-	res = recv(client_socket, (char *) &header_len, 4, 0);
-	if (res != 4) {
+void IPC::recv_next(char* dest, int numBytes) {
+	int bytesRead = recv(client_socket, dest, numBytes, 0);
+	if (bytesRead != numBytes) {
 		closesocket(listen_socket);
 		WSACleanup();
 		Exit(1, L"IPC: Failed to receive data from client");
 	}
-
-	char* header = new char[header_len];
-	res = recv(client_socket, header, header_len, 0);
-	if (res != header_len) {
-		closesocket(listen_socket);
-		WSACleanup();
-		Exit(1, L"IPC: Failed to receive data from client");
-	}
-
-	char* header_pos = header;
-	map_name.assign(header_pos);
-	while (*header_pos != '\0') {
-		header_pos++;
-	}
-	header_pos++;
-
-	player_name.assign(header_pos);
-	while (*header_pos != '\0') {
-		header_pos++;
-	}
-	header_pos++;
-
-	memcpy(&ai_count, header_pos, 4);
-	header_pos += 4;
-
-	memcpy(&laps, header_pos, 4);
-	header_pos += 4;
-
-	delete[] header;
-
-	res = recv(client_socket, (char*)&buflen, 4, 0);
-	if (res != 4) {
-		closesocket(listen_socket);
-		WSACleanup();
-		Exit(1, L"IPC: Failed to receive data from client");
-	}
-
-	buf = new char[buflen];
-	res = recv(client_socket, buf, buflen, 0);
-	if (res != buflen) {
-		closesocket(listen_socket);
-		WSACleanup();
-		delete[] buf;
-		Exit(1, L"IPC: Failed to receive data from client");
-	}
-}
-
-// Get the name of the map
-const std::string &IPC::get_map_name() {
-	return map_name;
-}
-
-// Get the name of the player's kart
-const std::string& IPC::get_player_name() {
-	return player_name;
-}
-
-// Get the number of AI opponents
-int IPC::get_ai_count() {
-	return ai_count;
-}
-
-// Get the number of laps
-int IPC::get_num_laps() {
-	return laps;
-}
-
-// Get all framebulks. Should only be called after start() has finished successfully.
-// Returns a pointer to a vector of Framebulks. It is the user's responsibility to free
-// this memory once done with it. If there is no framebulk data to return (start has not been called/
-// this function was already called before), returns null. 
-const auto *IPC::get_framebulks() {
-	if (buf == nullptr) {
-		return (std::vector<Framebulk> *)nullptr;
-	}
-
-	int pos = 0;
-	std::vector<Framebulk>* framebulks = new std::vector<Framebulk>;
-	while (pos < buflen) {
-		__int64 framebulk_bytes = 0;
-		memcpy(&framebulk_bytes, buf + pos, FB_SIZE);
-		framebulks->push_back(Framebulk(framebulk_bytes));
-		pos += FB_SIZE;
-	}
-
-	delete[] buf;
-	buflen = -1;
-	buf = nullptr;
-
-	return framebulks;
 }

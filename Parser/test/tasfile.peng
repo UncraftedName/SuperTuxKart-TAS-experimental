@@ -1,5 +1,9 @@
-map <a great map>
-
+map          "a great map"
+kart_name    "a great kart"
+num_ai_karts 0
+num_laps     1
 
 frames
-a-|-n-|5.0| // something descriptive
+--|---|0|500|
+a-|-n-|6|20|
+-b|-n-|-5|100|

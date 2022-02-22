@@ -39,7 +39,7 @@
     <ClCompile Include="src\ipc.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\framebulk.cpp">
+    <ClCompile Include="src\script_data.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -80,7 +80,7 @@
     <ClInclude Include="src\ipc.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\framebulk.h">
+    <ClInclude Include="src\script_data.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

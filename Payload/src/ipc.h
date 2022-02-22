@@ -7,12 +7,7 @@ class IPC {
 public:
 	IPC();
 	~IPC();
-	void start();
-	const std::string& get_map_name();
-	const std::string& get_player_name();
-	int get_ai_count();
-	int get_num_laps();
-	const auto *get_framebulks();
+	void accept_loop();
 
 private:
 	const char* PORT = "27015";
@@ -20,12 +15,5 @@ private:
 	SOCKET listen_socket;
 	SOCKET client_socket;
 
-	std::string map_name;
-	std::string player_name;
-	int ai_count = 0;
-	int laps = 0;
-
-	const int FB_SIZE = 8;
-	char* buf = nullptr;
-	int buflen = -1;
+	void recv_next(char* dest, int numBytes);
 };

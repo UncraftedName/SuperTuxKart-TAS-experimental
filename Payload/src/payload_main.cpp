@@ -3,27 +3,13 @@
 #include "./ipc.h"
 
 
-// any sort of global stuff we might need to keep track of so that we can cleanup in Exit()
-struct InfoMain {
-
-	HMODULE hModule; // handle to this dll
-	IPC* ipc; // global ipc object
-
-	InfoMain(HMODULE hModule) : hModule(hModule), ipc(nullptr) {}
-
-	~InfoMain() {
-		delete ipc;
-	}
-};
-
-
-InfoMain* g_Info;
+GlobalInfo* g_Info;
 
 
 __declspec(noreturn) void Exit(DWORD exitCode, const wchar_t* reason) {
 	MH_Uninitialize(); // this should unhook everything
 	HMODULE thisMod = g_Info->hModule;
-	delete g_Info; // if we don't delete this it technically results in a memory leak
+	delete g_Info; // yeet away all the resources
 	if (reason)
 		MessageBox(0, reason, L"", MB_OK);
 	FreeLibraryAndExitThread(thisMod, exitCode);
@@ -37,10 +23,9 @@ __declspec(noreturn) void __stdcall Main(void* _) {
 	if (hooks::HookAll() != MH_OK)
 		Exit(1, L"Failed to hook one or more functions");
 
-	g_Info->ipc = new IPC();
-	g_Info->ipc->start();
-	// IPC::buf now has map name
-	Exit(0, L"Received Data");
+	g_Info->ipc.accept_loop();
+
+	Exit(1, L"IPC accept loop exited");
 }
 
 
@@ -48,7 +33,7 @@ __declspec(noreturn) void __stdcall Main(void* _) {
 // summoning another thread for our "real" main seems to be the simplest solution.
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved) {
 	if (fdwReason == DLL_PROCESS_ATTACH) {
-		g_Info = new InfoMain(hModule);
+		g_Info = new GlobalInfo(hModule);
 		DisableThreadLibraryCalls(hModule);
 		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)Main, 0, 0, 0);
 	}

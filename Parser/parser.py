@@ -12,74 +12,56 @@
 import pathlib
 import re
 import struct
+import ctypes
 
 from client import Client_Socket
 
 test_path = "./test/tasfile.peng"
 
-def strToBytes(s):
+def strToBytes(s) -> bytes:
     return s.encode('utf-8') + b'\x00'
 
-def intToTwoBytes(n):
+def intToTwoBytes(n) -> bytes:
     return struct.pack('h', n)
 
-def intToFourBytes(n):
+def intToFourBytes(n) -> bytes:
     return struct.pack('i', n)
 
-def floatToBytes(f):
+def floatToBytes(f) -> bytes:
     return struct.pack('f', f)
 
 
-def processTASFields(fields):
-    """process each field and extract information returning
-    it in dictionary form
-
-
-    Keyword arguments:
-    fields -- list containing all fields
-
-    Return:
-    Dictionary -- dictionary containing info on framebulk
-    """
-    fields_bit_array = b'00000000000'
-    print("length 0: ", len(fields_bit_array))
+def fieldsToBytes(fields) -> bytes:
     acc     = fields[0]
     misc    = fields[1]
     ang     = fields[2]
     ticks   = fields[3]
 
-    # process acceleration fields
+    field_bits = 0
+
+    # accel fields
+
     if acc[0] == 'a':
-        fields_bit_array += b'1'
-    else:
-        fields_bit_array += b'0'
+        field_bits |= 1
     if acc[1] == 'b':
-        fields_bit_array += b'1'
-    else:
-        fields_bit_array += b'0'
+        field_bits |= 1 << 1
 
-    # process mischelleneous fields
+    # mischelleneous fields
+
     if misc[0] == 'f':
-        fields_bit_array += b'1'
-    else:
-        fields_bit_array += b'0'
+        field_bits |= 1 << 2
     if misc[1] == 'n':
-        fields_bit_array += b'1'
-    else:
-        fields_bit_array += b'0'
+        field_bits |= 1 << 3
     if misc[2] == 's':
-        fields_bit_array += b'1'
-    else:
-        fields_bit_array += b'0'
-    print("length 1: ", len(fields_bit_array))
-    # process ticks field
-    fields_bit_array += intToTwoBytes(int(ticks))
-    print("length 2: ", len(fields_bit_array))
-
-    # process turning angle
-    fields_bit_array += floatToBytes(float(ang))
-    print("length 3: ", len(fields_bit_array))
-    return fields_bit_array
+        field_bits |= 1 << 4
+    
+    # unused + flags -> 16 bits
+    out = struct.pack('h', field_bits)
+    # ticks field
+    out = intToTwoBytes(int(ticks)) + out
+    # turning angle
+    out = floatToBytes(float(ang)) + out
+    return out
 
 
 def processTASHeader(header):
@@ -87,7 +69,7 @@ def processTASHeader(header):
     """
     header_bit_array = b''
 
-    results = re.findall("map \"([A-z ]+)\"", header[0])
+    results = re.findall(r'map\s+"([A-z ]+)"', header[0])
     if not results: # check if list is empty
         print("Warning: Value for map not found.")
         return
@@ -95,7 +77,7 @@ def processTASHeader(header):
     header_bit_array += bit_output
 
 
-    results = re.findall("kart_name \"([A-z ]+)\"", header[1])
+    results = re.findall('kart_name\s+"([A-z ]+)"', header[1])
     if not results: # check if list is empty
         print("Warning: Value for kart_name not found.")
         return
@@ -103,7 +85,7 @@ def processTASHeader(header):
     header_bit_array += bit_output
 
 
-    results = re.findall("num_ai_karts \"([\d]+)\"", header[2])
+    results = re.findall('num_ai_karts\s+([\d]+)', header[2])
     if not results: # check if list is empty
         print("Warning: Value for num_ai_karts not found.")
         return
@@ -113,7 +95,7 @@ def processTASHeader(header):
     header_bit_array += bit_output
 
 
-    results = re.findall("num_laps \"(-?[\d]+)\"", header[3])
+    results = re.findall('num_laps\s+(-?[\d]+)', header[3])
     if not results: # check if list is empty
         print("Warning: Value for num_laps not found.")
         return
@@ -163,7 +145,7 @@ def processTASLines(data):
         if len(fields) != 4:
             print("Warning: Error parsing framebulk (line " + str(line_num) + "). Exiting...")
             exit()
-        payload += processTASFields(fields)
+        payload += fieldsToBytes(fields)
 
     # print("payload: ", payload)
     # print("length of payload: ", len(payload))
