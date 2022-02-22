@@ -118,16 +118,28 @@ namespace hooks {
 	}
 
 
-	static int mapLoadedCount = 0; // just for testing, remove this once we can send stuff through IPC
+	static int tick = 0;
 
 	/*
 	* It doesn't really matter what this function does, what matters is when it's called. It's in the
-	* main engine loop and a bit before some inputs are handled. This is probably a nice place to send
-	* inputs to the game from as well as loading new maps and stuff.
+	* main engine loop before some inputs are handled. This is probably a nice place to send inputs
+	* to the game, as well as loading new maps and stuff.
 	*/
 	void DETOUR_InputManager__update(InputManager* thisptr, float dt) {
 		ORIG_InputManager__update(thisptr, dt);
-		if (mapLoadedCount++ < 1)
+		if (tick++ < 1)
 			LoadMap();
+		else {
+			SEvent e;
+			e.EventType = EET_KEY_INPUT_EVENT;
+			auto& eki = e.KeyInput;
+			eki.Char = 0;
+			eki.Key = IRR_KEY_UP;
+			eki.SystemKeyCode = 0;
+			eki.PressedDown = 1;
+			eki.Shift = 0;
+			eki.Control = 0;
+			ORIG_InputManager__input(*input_manager, e);
+		}
 	}
 }
