@@ -58,9 +58,9 @@ def fieldsToBytes(fields) -> bytes:
     # unused + flags -> 16 bits
     out = struct.pack('h', field_bits)
     # ticks field
-    out = intToTwoBytes(int(ticks)) + out
+    out += intToTwoBytes(int(ticks))
     # turning angle
-    out = floatToBytes(float(ang)) + out
+    out += floatToBytes(float(ang))
     return out
 
 
@@ -90,8 +90,6 @@ def processTASHeader(header):
         print("Warning: Value for num_ai_karts not found.")
         return
     bit_output = intToFourBytes(int(results[0]))
-    if len(bit_output) > 4:
-        print("warning: Value for num_ai_karts is invalid.")
     header_bit_array += bit_output
 
 
@@ -100,19 +98,10 @@ def processTASHeader(header):
         print("Warning: Value for num_laps not found.")
         return
     bit_output = intToFourBytes(int(results[0]))
-    if len(bit_output) > 4:
-        print("warning: Value for num_laps is invalid.")
     header_bit_array += bit_output
 
-    header_length = len(header_bit_array)
-    # print("header_length: ", header_length)
-    header_length_bits = intToFourBytes(header_length)
-    # print("header_length bits: ", header_length_bits)
-    if len(header_length_bits) > 4:
-        print("warning: Header is too large. Exiting...")
-        exit()
-
-    return header_length_bits + header_bit_array
+    header_length_bytes = intToFourBytes(len(header_bit_array) + 4)
+    return header_length_bytes + header_bit_array
 
 
 def processTASLines(data):

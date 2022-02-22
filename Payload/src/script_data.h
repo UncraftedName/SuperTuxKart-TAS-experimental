@@ -6,8 +6,6 @@
 
 class Framebulk {
 public:
-	float turn_angle;
-	uint16_t num_ticks;
 	union {
 		struct {
 			bool accel : 1;
@@ -18,6 +16,8 @@ public:
 		};
 		uint16_t flags;
 	};
+	uint16_t num_ticks;
+	float turn_angle;
 
 	// size of a framebulk when set over network
 	static const int FB_SIZE_BYTES = 8;
@@ -27,9 +27,9 @@ public:
 	Framebulk() = default;
 
 	Framebulk(char* buf) {
-		turn_angle = *(float*)buf;
-		num_ticks = *(uint16_t*)(buf + 4);
-		flags = *(uint16_t*)(buf + 6);
+		flags = *(uint16_t*)buf;
+		num_ticks = *(uint16_t*)(buf + 2);
+		turn_angle = *(float*)(buf + 4);
 	}
 
 private:

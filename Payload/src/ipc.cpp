@@ -108,12 +108,11 @@ void IPC::accept_loop() {
 		script->laps = *(int*)header_pos;
 		header_pos += 4;
 
-		delete[] header;
 		
 		// read framebulk data
 
-		int bufLen = 0;
-		recv_next((char*)&bufLen, 4);
+		int bufLen = *(int*)header_pos;
+		delete[] header;
 		char* buf = new char[bufLen];
 		recv_next(buf, bufLen);
 
