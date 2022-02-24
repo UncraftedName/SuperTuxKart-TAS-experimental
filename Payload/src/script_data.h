@@ -68,7 +68,7 @@ private:
 	// header/framebulks
 	ScriptData* script_data = nullptr;
 	// use when accessing script_data, since we might to do that from game threads & the IPC connection
-	std::mutex script_mutex;
+	std::recursive_mutex script_mutex;
 	// we have a script that is currently being executed
 	bool has_active_script = false;
 	// we've loaded the map in the TAS script
@@ -82,7 +82,7 @@ private:
 
 	// only handles key codes, TODO: doesn't handle controller inputs
 	void send_game_input(EKEY_CODE key, bool key_pressed);
-
+	// loads the map in script data
 	void load_map();
 
 public:

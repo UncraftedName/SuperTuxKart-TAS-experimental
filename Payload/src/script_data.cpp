@@ -12,23 +12,26 @@ void ScriptData::fill_framebulk_data(const char* buf, size_t size) {
 
 void ScriptManager::set_new_script(ScriptData* data) {
 	script_mutex.lock();
-	delete script_data;
+	stop_script();
 	script_data = data;
 	has_active_script = true;
 	map_loaded = false;
 	fb_tick = 0;
 	fb_idx = 0;
-	play_speed = 1;
 	script_mutex.unlock();
 }
+
 
 void ScriptManager::stop_script() {
 	script_mutex.lock();
 	delete script_data;
 	script_data = nullptr;
 	has_active_script = false;
+	play_speed = 1;
+	*hooks::g_is_no_graphics = false;
 	script_mutex.unlock();
 }
+
 
 void ScriptManager::tick_signal() {
 	script_mutex.lock();
@@ -60,14 +63,16 @@ void ScriptManager::tick_signal() {
 		send_game_input(IRR_KEY_RIGHT, r_key);
 		send_game_input(IRR_KEY_LEFT, l_key);
 
-		if (fb.set_speed)
+		if (fb.set_speed) {
 			play_speed = fb.new_play_speed;
+			*hooks::g_is_no_graphics = play_speed < 0;
+		}
 
 		// increment tick
 		if (++fb_tick >= fb.num_ticks) {
 			fb_tick = 0;
 			if (++fb_idx >= script_data->framebulks.size()) {
-				has_active_script = false; // we're done
+				stop_script(); // we're done
 				break;
 			}
 		}

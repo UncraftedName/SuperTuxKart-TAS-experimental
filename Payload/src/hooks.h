@@ -26,6 +26,7 @@ namespace hooks {
 	extern StateManager** state_manager_singleton;
 	extern MainLoop** main_loop;
 	extern STKConfig** stk_config;
+	extern bool* g_is_no_graphics;
 
 
 	// use this if you just want a function pointer
