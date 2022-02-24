@@ -13,6 +13,7 @@ import pathlib
 import re
 import struct
 import ctypes
+from typing import List
 
 from client import Client_Socket, MessageType
 
@@ -31,37 +32,43 @@ def encodeFloat(f):
     return struct.pack('f', f)
 
 
-def fieldsToBytes(fields) -> bytes:
-    acc     = fields[0]
-    misc    = fields[1]
-    ang     = fields[2]
-    ticks   = fields[3]
+FLAG_ACCEL     = 1
+FLAG_BREAK     = 1 << 1
+FLAG_ABILITY   = 1 << 2
+FLAG_NITRO     = 1 << 3
+FLAG_SKID      = 1 << 4
+FLAG_SET_SPEED = 1 << 5
+
+KEYWORD_PLAYSPEED = 'playspeed'
+
+
+def encodeFramebulk(field_bits: int, turn_ang: float, num_ticks: int) -> bytes:
+    return struct.pack('hhf', field_bits, num_ticks, turn_ang)
+
+
+def getFieldBits(fields: List[str]) -> int:
+    acc  = fields[0]
+    misc = fields[1]
 
     field_bits = 0
 
     # accel fields
 
     if acc[0] == 'a':
-        field_bits |= 1
+        field_bits |= FLAG_ACCEL
     if acc[1] == 'b':
-        field_bits |= 1 << 1
+        field_bits |= FLAG_BREAK
 
     # mischelleneous fields
 
     if misc[0] == 'f':
-        field_bits |= 1 << 2
+        field_bits |= FLAG_ABILITY
     if misc[1] == 'n':
-        field_bits |= 1 << 3
+        field_bits |= FLAG_NITRO
     if misc[2] == 's':
-        field_bits |= 1 << 4
+        field_bits |= FLAG_SKID
     
-    # unused + flags -> 16 bits
-    out = struct.pack('h', field_bits)
-    # ticks field
-    out += encodeShort(int(ticks))
-    # turning angle
-    out += encodeFloat(float(ang))
-    return out
+    return field_bits
 
 
 def processTASHeader(header):
@@ -127,13 +134,20 @@ def processTASLines(data):
     line_num = 3
     for line in data[5:]:
         line_num += 1
-        print("line: \"" + str(line) + "\"")
-        fields = [x for x in line.split("|") if x and not x.isspace()] # removes spaces from list elems
-        print("fields: ", fields)
-        if len(fields) != 4:
-            print("Warning: Error parsing framebulk (line " + str(line_num) + "). Exiting...")
-            exit()
-        payload += fieldsToBytes(fields)
+        if line.lower().startswith(KEYWORD_PLAYSPEED):
+            field_bits = FLAG_SET_SPEED
+            # get everything after 'playspeed' and interpret as float, send as an angle
+            ang = float(line[len(KEYWORD_PLAYSPEED):])
+            ticks = 0
+        else:
+            fields = [x for x in line.split("|") if x and not x.isspace()] # removes spaces from list elems
+            if len(fields) != 4:
+                print(f"Warning: Error parsing framebulk (line {line_num}). Exiting...")
+                exit()
+            field_bits = getFieldBits(fields)
+            ang = float(fields[2])
+            ticks = int(fields[3])
+        payload += encodeFramebulk(field_bits, ang, ticks)
 
     return header + payload
 
@@ -155,8 +169,8 @@ def parseTAS(tasFile):
         exit(-1)
 
     file = open(tasFile, mode='r')
-
-    data = [removeComments(x) for x in file.readlines() if (x != "\n")] # removes empty lines from list
+    # strip whitespace, remove comments, etc.
+    data = [y for y in (removeComments(x).strip() for x in file.readlines()) if len(y) != 0]
 
     file.close()
 

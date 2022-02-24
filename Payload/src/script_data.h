@@ -7,22 +7,27 @@
 class Framebulk {
 public:
 	union {
+		// flags that correspond to buttons should come first
 		struct {
-			bool accel : 1;
-			bool brake : 1;
-			bool fire  : 1;
-			bool nitro : 1;
-			bool skid  : 1;
+			bool accel     : 1;
+			bool brake     : 1;
+			bool fire      : 1;
+			bool nitro     : 1;
+			bool skid      : 1;
+			bool set_speed : 1;
 		};
 		uint16_t flags;
 	};
 	uint16_t num_ticks;
-	float turn_angle;
+	union {
+		float turn_angle;
+		float new_play_speed; // only applies if the set_speed flag is true
+	};
 
 	// size of a framebulk when set over network
 	static const int FB_SIZE_BYTES = 8;
 
-	static const int NUM_FLAGS = 5;
+	static const int NUM_BUTTON_FLAGS = 5; // flags that correspond to single buttons
 
 	Framebulk() = default;
 
@@ -72,6 +77,8 @@ private:
 	int fb_tick = 0;
 	// the framebulk index that we're on
 	int fb_idx = 0;
+	// current playspeed, negative values means as fast as possible
+	float play_speed = 1;
 
 	// only handles key codes, TODO: doesn't handle controller inputs
 	void send_game_input(EKEY_CODE key, bool key_pressed);
@@ -82,7 +89,7 @@ public:
 
 	~ScriptManager() {
 		/*
-		* Puttint locks here would probably be redundant, this destructor can in theory be called at
+		* Putting locks here would probably be redundant, this destructor can in theory be called at
 		* any time from Exit(), but the game can acquire the locks at any time which would result in
 		* us freeing acquired locks which is undefined behavior or something anyways.
 		*/
@@ -91,8 +98,12 @@ public:
 
 	bool running_script() {return has_active_script;}
 
-	// we've just parsed a new script via IPC
+	float get_play_speed() {return play_speed;}
+
+	// we've just parsed a new script via IPC, stops the existing script
 	void set_new_script(ScriptData* data);
+
+	void stop_script();
 
 	// signal that we're on a new game tick
 	void tick_signal();

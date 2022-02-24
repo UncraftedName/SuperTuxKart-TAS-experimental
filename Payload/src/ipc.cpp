@@ -112,9 +112,10 @@ bool IPC::process_msg(const char* buf, size_t size, MessageType type) {
 	const char* buf_orig = buf;
 	switch (type) {
 		case MessageType::Script: {
-			// read header fields
 
 			ScriptData* script = new ScriptData();
+
+			// read header fields
 
 			script->map_name.assign(buf);
 			buf += script->map_name.length() + 1;

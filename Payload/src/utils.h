@@ -8,6 +8,7 @@
 
 #include <Windows.h>
 #include <string>
+#include <atomic>
 #include "script_data.h"
 #include "ipc.h"
 
@@ -27,12 +28,14 @@ public:
 	ScriptManager script_mgr;
 	// we might get a premature exit before we can delete this
 	char* tmp_ipc_buf = nullptr;
+	// do our best to prevent unloading while a game thread is in a hooked function
+	std::atomic_int detour_thread_count;
 
 	GlobalInfo(HMODULE hModule) : hModule(hModule) {}
 
 	~GlobalInfo() {
 		delete tmp_ipc_buf;
-	} 
+	}
 };
 
 

@@ -24,6 +24,8 @@ namespace hooks {
 	extern InputManager** input_manager;
 	extern PlayerManager** m_player_manager;
 	extern StateManager** state_manager_singleton;
+	extern MainLoop** main_loop;
+	extern STKConfig** stk_config;
 
 
 	// use this if you just want a function pointer
@@ -41,9 +43,6 @@ namespace hooks {
 	// the main input function for the game
 	DECLARE_HOOK(InputManager__input, EventPropagation, InputManager* thisptr, SEvent& event);
 
-	// called once a tick(?) near GUI/Input stuff
-	DECLARE_HOOK(InputManager__update, void, InputManager* thisptr, float dt);
-
 	// starts a new track
 	DECLARE_FUNC(RaceManager__startSingleRace, void, RaceManager* thisptr, const std::str_wrap& track_ident, const int num_laps, bool from_overworld);
 
@@ -58,4 +57,7 @@ namespace hooks {
 
 	// sets assign mode for input devices (we need to set this so that the game can map our inputs to a specific player)
 	DECLARE_FUNC(DeviceManager__setAssignMode, void, DeviceManager* thisptr, const PlayerAssignMode assignMode);
+
+	// returns the timestep to take in the main engine loop
+	DECLARE_HOOK(MainLoop__getLimitedDt, float, MainLoop* thisptr);
 }

@@ -137,6 +137,13 @@ struct RaceManager {
 	}
 };
 
+struct MainLoop;
+
+struct STKConfig {
+	char __pad0[0x354];
+	int m_physics_fps;
+};
+
 
 typedef unsigned __int32 u32;
 typedef __int32 s32;

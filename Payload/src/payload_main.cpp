@@ -7,12 +7,18 @@ GlobalInfo* g_Info;
 
 
 __declspec(noreturn) void Exit(DWORD exitCode, const wchar_t* reason) {
-	MH_Uninitialize(); // this should unhook everything
-	HMODULE thisMod = g_Info->hModule;
-	delete g_Info; // yeet away all the resources
+
+	// SPIIIIIIIIIIIIIIIIIIIIIIIN
+	while (g_Info->detour_thread_count.load() > 0) {
+		if (g_Info->script_mgr.running_script())
+			g_Info->script_mgr.stop_script();
+		Sleep(1);
+	}
+
+	MH_Uninitialize(); // this should unhook everything, pray that game threads are not in detours
 	if (reason)
 		MessageBox(0, reason, L"", MB_OK);
-	FreeLibraryAndExitThread(thisMod, exitCode);
+	FreeLibraryAndExitThread(g_Info->hModule, exitCode);
 }
 
 
@@ -32,10 +38,17 @@ __declspec(noreturn) void __stdcall Main(void* _) {
 // There's some limitations on what you can do from here cuz of the loader lock,
 // summoning another thread for our "real" main seems to be the simplest solution.
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved) {
-	if (fdwReason == DLL_PROCESS_ATTACH) {
-		g_Info = new GlobalInfo(hModule);
-		DisableThreadLibraryCalls(hModule);
-		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)Main, 0, 0, 0);
+	switch (fdwReason) {
+		case DLL_PROCESS_ATTACH:
+			g_Info = new GlobalInfo(hModule);
+			DisableThreadLibraryCalls(hModule);
+			CreateThread(0, 0, (LPTHREAD_START_ROUTINE)Main, 0, 0, 0);
+			break;
+		case DLL_PROCESS_DETACH:
+			delete g_Info;
+			break;
+		default:
+			break;
 	}
 	return true;
 }

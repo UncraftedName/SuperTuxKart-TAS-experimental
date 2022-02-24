@@ -18,9 +18,17 @@ void ScriptManager::set_new_script(ScriptData* data) {
 	map_loaded = false;
 	fb_tick = 0;
 	fb_idx = 0;
+	play_speed = 1;
 	script_mutex.unlock();
 }
 
+void ScriptManager::stop_script() {
+	script_mutex.lock();
+	delete script_data;
+	script_data = nullptr;
+	has_active_script = false;
+	script_mutex.unlock();
+}
 
 void ScriptManager::tick_signal() {
 	script_mutex.lock();
@@ -43,7 +51,7 @@ void ScriptManager::tick_signal() {
 		// hard coded keys for each flag
 		const EKEY_CODE flag_keys[] = {IRR_KEY_UP, IRR_KEY_DOWN, IRR_KEY_SPACE, IRR_KEY_N, IRR_KEY_V};
 
-		for (int i = 0; i < Framebulk::NUM_FLAGS; i++)
+		for (int i = 0; i < Framebulk::NUM_BUTTON_FLAGS; i++)
 			send_game_input(flag_keys[i], fb.flags & (1 << i));
 
 		// TODO: send joystick inputs instead of just hard left/right
@@ -51,6 +59,9 @@ void ScriptManager::tick_signal() {
 		bool l_key = fb.turn_angle < 0;
 		send_game_input(IRR_KEY_RIGHT, r_key);
 		send_game_input(IRR_KEY_LEFT, l_key);
+
+		if (fb.set_speed)
+			play_speed = fb.new_play_speed;
 
 		// increment tick
 		if (++fb_tick >= fb.num_ticks) {
@@ -60,8 +71,8 @@ void ScriptManager::tick_signal() {
 				break;
 			}
 		}
-		// break if we just processed a framebulk with at least one tick
-		if (fb.num_ticks > 0)
+		// break if we just processed a framebulk with at least one tick or if we set the speed to 0
+		if (fb.num_ticks > 0 || (fb.set_speed && fb.new_play_speed == 0))
 			break;
 	}
 
