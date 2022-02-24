@@ -25,14 +25,13 @@ public:
 	IPC ipc;
 	// single object to keep track of where we are in the TAS script
 	ScriptManager script_mgr;
-	// temporary place for IPC to put its new script before giving it to the status object
-	ScriptData* script_data = nullptr;
+	// we might get a premature exit before we can delete this
+	char* tmp_ipc_buf = nullptr;
 
 	GlobalInfo(HMODULE hModule) : hModule(hModule) {}
 
-	// called from Exit()
 	~GlobalInfo() {
-		delete script_data;
+		delete tmp_ipc_buf;
 	} 
 };
 

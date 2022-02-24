@@ -26,7 +26,7 @@ public:
 
 	Framebulk() = default;
 
-	Framebulk(char* buf) {
+	Framebulk(const char* buf) {
 		flags = *(uint16_t*)buf;
 		num_ticks = *(uint16_t*)(buf + 2);
 		turn_angle = *(float*)(buf + 4);
@@ -52,7 +52,7 @@ public:
 	int laps = 0;
 	std::vector<Framebulk> framebulks;
 
-	void fill_framebulk_data(char* buf, int bufLen);
+	void fill_framebulk_data(const char* buf, size_t size);
 };
 
 

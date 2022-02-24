@@ -14,7 +14,7 @@ import re
 import struct
 import ctypes
 
-from client import Client_Socket
+from client import Client_Socket, MessageType
 
 test_path = "./test/tasfile.peng"
 
@@ -100,8 +100,7 @@ def processTASHeader(header):
     bit_output = encodeInt(int(results[0]))
     header_bit_array += bit_output
 
-    header_length_bytes = encodeInt(len(header_bit_array) + 4)
-    return header_length_bytes + header_bit_array
+    return header_bit_array
 
 
 def processTASLines(data):
@@ -136,10 +135,7 @@ def processTASLines(data):
             exit()
         payload += fieldsToBytes(fields)
 
-    # print("payload: ", payload)
-    # print("length of payload: ", len(payload))
-    payload_length_bits = encodeInt(len(payload))
-    return header + payload_length_bits + payload
+    return header + payload
 
 def removeComments(string): # Removes all comments from script
     return string[:string.find("//")]
@@ -170,14 +166,13 @@ def parseTAS(tasFile):
 def main():
     """
     """
-    global test_path
     tasInfo = parseTAS(test_path)
     print("final tas bitarray:", tasInfo)
 
     # Open Client socket and send data to Payload
     sock = Client_Socket()
     sock.start()
-    sock.send(tasInfo)
+    sock.send(tasInfo, MessageType.Script)
 
 
 if __name__ == "__main__":

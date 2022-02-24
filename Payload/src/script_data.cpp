@@ -1,9 +1,10 @@
 #include "script_data.h"
 #include "hooks.h"
 
-void ScriptData::fill_framebulk_data(char* buf, int bufLen) {
+void ScriptData::fill_framebulk_data(const char* buf, size_t size) {
+	framebulks.clear();
 	framebulks.push_back(Framebulk()); // to unpress all keys before & after running
-	for (int off = 0; bufLen - off >= Framebulk::FB_SIZE_BYTES; off += Framebulk::FB_SIZE_BYTES)
+	for (size_t off = 0; size - off >= Framebulk::FB_SIZE_BYTES; off += Framebulk::FB_SIZE_BYTES)
 		framebulks.push_back(Framebulk(buf + off));
 	framebulks.push_back(Framebulk());
 }

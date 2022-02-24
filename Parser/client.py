@@ -2,14 +2,25 @@
 # Client Socket usage:
 #   Create an object of Client_Socket: sock
 #   Call sock.start() to connect to the IPC server
-#   To send data, call sock.send(msg) where "msg"
-#   is a bytes object.
+#
+#   To send data, call sock.send(msg, type) where
+#   'msg' is a bytes object and type indicates the
+#   type of message sent.
+#
 #   To receive data, call sock.recv() which returns
 #   a bytes object retrieved from the server.
 # =================================================
 
 import socket
 import struct
+from enum import Enum
+
+
+class MessageType(Enum):
+    # 0-255 range
+    Script = 0 # we're sending a TAS script
+    Unload = 1 # we're telling the payload to rid itself
+
 
 addr = ("127.0.0.1", 27015) # IPC connection address
 
@@ -54,19 +65,19 @@ class Client_Socket:
         print ("connection successful")
 
 
-    def send(self, msg : bytes) -> None:
+    def send(self, msg : bytes, type: MessageType) -> None:
         """sends a message from the client to the server
 
         Keyword arguments:
         msg -- a bytes object which should be sent to the server
+        type -- the message type
 
         Return:
         none
         """
-        # Send the length of the message as four bytes, followed by the full message
-        # Convert message length from host to network endian
-        #msg_len = struct.pack("i", len(msg))
-        #self.client_socket.send(msg_len)
+        # Send the length of the full message as four bytes, then the message type,
+        # then the full message, data is sent in host endian.
+        msg = struct.pack('iB', len(msg) + 1, type.value) + msg
         self.client_socket.send(msg)
         
 

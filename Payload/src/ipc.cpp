@@ -69,12 +69,9 @@ IPC::~IPC() {
 }
 
 
-// Listen for a client, and accept a single connection. Note that this function only accepts
-// one client at a time before returning. To accept multiple clients, it is the user's 
-// responsibility to place this start() call in a loop. 
+// accept and process all connections
 void IPC::accept_loop() {
 
-	// TODO: would be nice to have an exit condition for this
 	for (;;) {
 
 		// Wait for an incoming client socket
@@ -85,42 +82,20 @@ void IPC::accept_loop() {
 			Exit(1, L"IPC: Failed to accept client");
 		}
 
-		int header_len = 0;
-		recv_next((char*)&header_len, 4);
+		int size = 0;
+		recv_next((char*)&size, 4);
+		if (size == 0)
+			Exit(1, L"IPC: Could not deduce message type");
 
-		char* header = new char[header_len];
-		recv_next(header, header_len);
-		char* header_pos = header;
+		// set the buffer in g_Info so that it can be cleaned up in case we decide to exit
+		char* buf = g_Info->tmp_ipc_buf = new char[size];
+		recv_next(buf, size);
 
-		// read header fields 
+		MessageType type = (MessageType)*buf;
+		process_msg(buf + 1, (size_t)size - 1, type);
 
-		ScriptData* script = g_Info->script_data = new ScriptData();
-
-		script->map_name.assign(header_pos);
-		header_pos += script->map_name.length() + 1;
-
-		script->player_name.assign(header_pos);
-		header_pos += script->player_name.length() + 1;
-
-		script->ai_count = *(int*)header_pos;
-		header_pos += 4;
-
-		script->laps = *(int*)header_pos;
-		header_pos += 4;
-
-		
-		// read framebulk data
-
-		int bufLen = *(int*)header_pos;
-		delete[] header;
-		char* buf = new char[bufLen];
-		recv_next(buf, bufLen);
-
-		script->fill_framebulk_data(buf, bufLen);
+		g_Info->tmp_ipc_buf = nullptr;
 		delete[] buf;
-
-		g_Info->script_mgr.set_new_script(script);
-		g_Info->script_data = nullptr;
 	}
 }
 
@@ -131,4 +106,38 @@ void IPC::recv_next(char* dest, int numBytes) {
 		WSACleanup();
 		Exit(1, L"IPC: Failed to receive data from client");
 	}
+}
+
+bool IPC::process_msg(const char* buf, size_t size, MessageType type) {
+	const char* buf_orig = buf;
+	switch (type) {
+		case MessageType::Script: {
+			// read header fields
+
+			ScriptData* script = new ScriptData();
+
+			script->map_name.assign(buf);
+			buf += script->map_name.length() + 1;
+
+			script->player_name.assign(buf);
+			buf += script->player_name.length() + 1;
+
+			script->ai_count = *(int*)buf;
+			buf += 4;
+
+			script->laps = *(int*)buf;
+			buf += 4;
+
+			// read framebulk data
+
+			script->fill_framebulk_data(buf, size - (buf - buf_orig));
+			g_Info->script_mgr.set_new_script(script);
+			break;
+		}
+		case MessageType::Unload:
+			Exit(0);
+		default:
+			return false;
+	}
+	return true;
 }
