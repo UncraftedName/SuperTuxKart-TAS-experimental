@@ -146,7 +146,7 @@ namespace hooks {
 		} else {
 			dt = ORIG_MainLoop__getLimitedDt(thisptr);
 		}
-		prev_time = cur_time;
+		prev_time = GetTickCount64();
 		return dt;
 	}
 }
