@@ -64,21 +64,23 @@ namespace hooks {
 
 	MH_STATUS HookAll() {
 
-		#define FAILED_HOOK(name, offset) (stat = QueueFunctionHook(FROM_BASE(offset), &DETOUR_##name, ORIG_##name)) != MH_OK
-		#define SET_FUNC_PTR(name, offset) ORIG_##name = (_##name)FROM_BASE(offset);
+		#define MH_FAILED(try_func) ((stat = (try_func)) != MH_OK)
+		#define MH_FAILED_HOOK(name, offset) MH_FAILED(QueueFunctionHook(FROM_BASE(offset), &DETOUR_##name, ORIG_##name))
 
 
 		// hook functions
 		MH_STATUS stat;
 		if (
-			(stat = MH_Initialize()) != MH_OK ||
-			FAILED_HOOK(InputManager__input,    0x17d690) ||
-			FAILED_HOOK(MainLoop__getLimitedDt, 0x219770) ||
-			(stat = MH_ApplyQueued()) != MH_OK
+			MH_FAILED(MH_Initialize()) ||
+			MH_FAILED_HOOK(InputManager__input,    0x17d690) ||
+			MH_FAILED_HOOK(MainLoop__getLimitedDt, 0x219770) ||
+			MH_FAILED(MH_ApplyQueued())
 		) return stat;
 
 
 		// get plain function pointers (not hooks)
+		#define SET_FUNC_PTR(name, offset) ORIG_##name = (_##name)FROM_BASE(offset);
+
 		SET_FUNC_PTR(RaceManager__startSingleRace,       0x2f41b0);
 		SET_FUNC_PTR(DeviceManager__getLatestUsedDevice, 0x172020);
 		SET_FUNC_PTR(StateManager__createActivePlayer,   0x437640);
@@ -98,6 +100,7 @@ namespace hooks {
 
 		#undef FAILED_HOOK
 		#undef GET_FUNC_PTR
+		#undef MH_FAILED
 
 		return MH_OK;
 	}
