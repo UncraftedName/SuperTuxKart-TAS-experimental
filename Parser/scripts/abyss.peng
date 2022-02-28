@@ -1,0 +1,63 @@
+map          "abyss"
+kart_name    "tux"
+num_ai_karts 0
+num_laps     1
+
+frames // ab|fns|angle|ticks|
+
+playspeed -1
+--|---|0|600| // wait for match start
+
+// first sharp loop
+// turn right slightly, prepare for first drift
+a-|---|0|100|
+a-|---|1|35|
+a-|---|0|100|
+a-|---|-1|25|
+a-|---|0|180|
+
+// initiate drifting left (1 boost)
+a-|--s|-1|5|
+a-|--s|1|150|
+a-|---|-1|40|
+a-|---|0|120|
+// drift right, picking up nitros (2 boost)
+a-|--s|1|100|
+a-|--s|0|250|
+a-|--s|1|25|
+a-|---|-1|40|
+a-|---|0|55|
+
+// initiate left skid into second lengthy loop
+a-|--s|-1|40|
+a-|---|0|85|
+// dodge banana and drift right
+a-|--s|1|5|
+a-|--s|-1|100|
+a-|--s|0|75|
+a-|--s|-1|200|
+// release red drift for boost
+a-|---|0|150|
+// initiate second drift
+a-|--s|1|5|
+a-|--s|-1|80|
+a-|--s|0|80|
+a-|--s|-1|180|
+// nitro drift boost
+a-|-n-|0|100|
+playspeed 1
+a-|---|0|80|
+// turn left and get nitro
+a-|---|-1|40|
+a-|---|0|30|
+a-|---|1|50|
+a-|---|0|20|
+a-|f--|0|50|
+a-|-n-|0|50|
+a-|---|0|50|
+// slight drift left for speed
+a-|--s|-1|5|
+a-|--s|1|50|
+// drift right through loop
+
+playspeed 0

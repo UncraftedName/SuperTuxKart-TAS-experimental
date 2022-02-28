@@ -1,9 +1,0 @@
-kart_name    "a great kart"
-map          "a great map"
-num_ai_karts1 0
-num_laps     1
-
-frames
---|---|0|500|
-a-|-n-|6|20|
--b|-n-|-5|
