@@ -101,7 +101,7 @@ namespace hooks {
 
 
 		#undef FAILED_HOOK
-		#undef GET_FUNC_PTR
+		#undef SET_FUNC_PTR
 		#undef MH_FAILED
 
 		return MH_OK;

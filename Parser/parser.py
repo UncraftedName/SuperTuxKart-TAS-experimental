@@ -12,10 +12,8 @@
 import pathlib
 import re
 import struct
-import ctypes
-import os
 import argparse
-from typing import List
+from typing import List, Tuple, Callable
 
 from client import Client_Socket, MessageType
 
@@ -32,8 +30,6 @@ def encodeFloat(f):
     return struct.pack('f', f)
 
 
-# these flags must line up with the payload
-
 FLAG_ACCEL     = 1
 FLAG_BREAK     = 1 << 1
 FLAG_ABILITY   = 1 << 2
@@ -43,14 +39,90 @@ FLAG_SET_SPEED = 1 << 5
 
 # header keywords
 
-KEYWORD_MAP = 'map'
-KEYWORD_KART_NAME = 'kart_name'
-KEYWORD_NUM_LAPS = 'num_laps'
-KEYWORD_DIFFICULTY = 'difficulty'
+KW_MAP        = 'map'
+KW_KART_NAME  = 'kart_name'
+KW_NUM_LAPS   = 'num_laps'
+KW_DIFFICULTY = 'difficulty'
+KW_NUM_AI     = 'num_ai_karts'
+
+# This has some maps that you normally shouldn't be able to load,
+# but I don't know/care enough to filter through all of these.
+MAP_NAMES = {
+    "abyss",
+    "alien_signal",
+    "ancient_colosseum_labyrinth",
+    "arena_candela_city",
+    "battleisland",
+    "black_forest",
+    "candela_city",
+    "cave",
+    "cocoa_temple",
+    "cornfield_crossing",
+    "endcutscene",
+    "featunlocked",
+    "fortmagma",
+    "gplose",
+    "gpwin",
+    "gran_paradiso_island",
+    "hacienda",
+    "icy_soccer_field",
+    "introcutscene",
+    "introcutscene2",
+    "lasdunasarena",
+    "lasdunassoccer",
+    "lighthouse",
+    "mines",
+    "minigolf",
+    "olivermath",
+    "overworld",
+    "pumpkin_park",
+    "ravenbridge_mansion",
+    "sandtrack",
+    "scotland",
+    "snowmountain",
+    "snowtuxpeak",
+    "soccer_field",
+    "stadium",
+    "stk_enterprise",
+    "temple",
+    "tutorial",
+    "volcano_island",
+    "xr591",
+    "zengarden",
+}
+
+KART_NAMES = {
+    "adiumy",
+    "amanda",
+    "beastie",
+    "emule",
+    "gavroche",
+    "gnu",
+    "hexley",
+    "kiki",
+    "konqi",
+    "nolok",
+    "pidgin",
+    "puffy",
+    "sara_the_racer",
+    "sara_the_wizard",
+    "suzanne",
+    "tux",
+    "wilber",
+    "xue",
+}
 
 # framebulk keywords
 
-KEYWORD_PLAYSPEED = 'playspeed'
+KW_FRAMES    = 'frames'
+KW_PLAYSPEED = 'playspeed'
+
+
+def define_field(key: str, pattern: str = r'[^\s\'"]+') -> str:
+    # Returns a regex pattern with a named group for a key/value pair, where 'pattern'
+    # is the regex for the value. The value may optionally be single or double quoted.
+    # E.g. (key='map', pattern='\w+') will match "map 'e'" and groupdict()['map']='e'.
+    return rf"""^{key}\s+=?\s*(?:"(?={pattern}")|'(?={pattern}'))?(?P<{key}>{pattern})['"]?$"""
 
 
 def encodeFramebulk(field_bits: int, turn_ang: float, num_ticks: int) -> bytes:
@@ -82,59 +154,88 @@ def getFieldBits(fields: List[str]) -> int:
     return field_bits
 
 
-def processTASHeader(header):
+def processTASHeader(lines: List[Tuple[int, str]]) -> bytes:
+    """parse script header and convert to bytes
+
+    Keyword arguments:
+    lines -- all lines in the script before the 'frames' keyword,
+        these lines are assumed to have no leading/trailing whitespace
     """
-    """
-    header_bit_array = b''
 
-    results = re.findall(rf'{KEYWORD_MAP}\s+"([A-z ]+)"', header[0])
-    if not results: # check if list is empty
-        print(f"Value for '{KEYWORD_MAP}' not found.")
-        return
-    bit_output = encodeStr(results[0])
-    header_bit_array += bit_output
+    header_fields_regex = '|'.join((
+        define_field(KW_MAP),
+        define_field(KW_KART_NAME),
+        define_field(KW_NUM_LAPS),
+        define_field(KW_DIFFICULTY),
+        define_field(KW_NUM_AI),
+    ))
+
+    fields_dict = {}
+    for m, line_num, line in ((re.match(header_fields_regex, line[1]), *line) for line in lines if line):
+        if m:
+            for k, v in m.groupdict().items():
+                if v is not None:
+                    fields_dict[k] = v
+        else:
+            print(f'Warning, unrecognized syntax on line {line_num}: "{line}", ignoring.')
+
+    # validate header values
+
+    # check that all mandatory keys exist
+    for key in {KW_MAP, KW_KART_NAME, KW_NUM_LAPS, KW_DIFFICULTY} - fields_dict.keys():
+        print(f"Value for '{key}' not found.")
+        exit(1)
+
+    def validate_field(key: str, convert_func: Callable, validate_func: Callable) -> bool:
+        # key - header key
+        # convert_func - tries to convert the value to a new value (e.g. str -> int)
+        # validate_func - returns true if the new value is valid
+        try:
+            new_val = convert_func(fields_dict[key])
+            success = validate_func(new_val)
+            if success:
+                fields_dict[key] = new_val
+            return success
+        except:
+            return False
+
+    if not validate_field(KW_NUM_LAPS, lambda s: int(s), lambda n: n == -1 or n > 0):
+        print(f"Invalid value '{fields_dict[KW_NUM_LAPS]}' for key '{KW_NUM_LAPS}', \
+            should be a positive integer or -1 in special cases.")
+        exit(1)
+
+    if not validate_field(KW_DIFFICULTY, lambda s: int(s), lambda n: n >= 0 and n <= 3):
+        print(f"Invalid value '{fields_dict[KW_DIFFICULTY]}' for key '{KW_DIFFICULTY}', should be 0-3.")
+        exit(1)
+
+    if KW_NUM_AI not in fields_dict:
+        fields_dict[KW_NUM_AI] = 0
+        if not validate_field(KW_NUM_AI, lambda s: int(s), lambda n: n >= 0):
+            print(f"Invalid value '{fields_dict[KW_NUM_AI]}' for key '{KW_NUM_AI}', should be at least 0.")
+            exit(1)
+
+    if fields_dict[KW_MAP] not in MAP_NAMES:
+        print(
+            f"Invalid map name: '{fields_dict[KW_MAP]}'. Here's a list of all valid maps:\n",
+            '\n'.join(sorted(MAP_NAMES))
+        )
+        exit(1)
+
+    if fields_dict[KW_KART_NAME] not in KART_NAMES:
+        print(
+            f"Invalid kart name: '{fields_dict[KW_KART_NAME]}'. Here's a list of all valid kart names:\n",
+            '\n'.join(sorted(KART_NAMES))
+        )
+        exit(1)
+
+    return (
+        encodeStr(fields_dict[KW_MAP]) +
+        encodeStr(fields_dict[KW_KART_NAME]) +
+        struct.pack('3i', *(fields_dict[x] for x in (KW_NUM_AI, KW_NUM_LAPS, KW_DIFFICULTY)))
+    )
 
 
-    results = re.findall(rf'{KEYWORD_KART_NAME}\s+"([A-z ]+)"', header[1])
-    if not results: # check if list is empty
-        print(f"Value for '{KEYWORD_KART_NAME}' not found!")
-        return
-    bit_output = encodeStr(results[0])
-    header_bit_array += bit_output
-
-    
-    # results = re.findall('num_ai_karts\s+([\d]+)', header[2])
-    # if not results: # check if list is empty
-    #     print("Warning: Value for num_ai_karts not found.")
-    #     return
-    # bit_output = encodeInt(int(results[0]))
-    # header_bit_array += bit_output
-
-    # hard code number of AI karts to be 0, easier than changing the format
-    header_bit_array += encodeInt(0)
-
-    results = re.findall(rf'{KEYWORD_NUM_LAPS}\s+(-?[\d]+)', header[2])
-    if not results: # check if list is empty
-        print(f"Value for '{KEYWORD_NUM_LAPS}' not found!")
-        return
-    bit_output = encodeInt(int(results[0]))
-    header_bit_array += bit_output
-
-
-    results = re.findall(rf'{KEYWORD_DIFFICULTY}\s+(\d+)', header[3])
-    if not results:
-        print(f"Value for '{KEYWORD_DIFFICULTY}' not found!")
-        return
-    diff_int = int(results[0])
-    if diff_int < 0 or diff_int > 3:
-        print(f"Invalid value for '{KEYWORD_DIFFICULTY}', expected 0-3, got {diff_int}.")
-        return
-    header_bit_array += encodeInt(diff_int)
-
-    return header_bit_array
-
-
-def processTASLines(data):
+def processTASLines(lines: List[Tuple[int, str]]):
     """process lines from TAS script and return information
     in dictionary format
 
@@ -145,31 +246,35 @@ def processTASLines(data):
     Return:
     Dictionary -- dictionary containing all data in parsed TAS script
     """
-    header = processTASHeader(data[:4])
-    if not header:
-        exit(-1)
-    # begin parsing framebulks
-    if not "frames" in data[4]:
-        print("Error: Did not find start of framebulks. Exiting...")
-        exit(-1)
+
+    # find first line with 'frames' on it (gives index, not line number)
+    try:
+        framebulks_sep_line = next(i for i, line in enumerate(lines) if line[1].lower() == KW_FRAMES)
+    except StopIteration:
+        print(f"No '{KW_FRAMES}' keyword found, not sure where header ends.")
+        exit(1)
+
+    header = processTASHeader(lines[:framebulks_sep_line])
+
+    # parse framebulks
+
     # syntax for framebulks:
     # --|---|-|0|
     # - indicate a field
     # 0 indicates number of ticks
+
     payload = b''
-    line_num = 3
-    for line in data[5:]:
-        line_num += 1
-        if line.lower().startswith(KEYWORD_PLAYSPEED):
+    for line_num, line in lines[framebulks_sep_line+1:]:
+        if line.lower().startswith(KW_PLAYSPEED):
             field_bits = FLAG_SET_SPEED
             # get everything after 'playspeed' and interpret as float, send as an angle
-            ang = float(line[len(KEYWORD_PLAYSPEED):])
+            ang = float(line[len(KW_PLAYSPEED):])
             ticks = 0
         else:
             fields = [x for x in line.split("|") if x and not x.isspace()] # removes spaces from list elems
             if len(fields) != 4:
                 print(f"Warning: Error parsing framebulk (line {line_num}). Exiting...")
-                exit()
+                exit(1)
             field_bits = getFieldBits(fields)
             ang = float(fields[2])
             ticks = int(fields[3])
@@ -195,12 +300,13 @@ def parseTAS(tasFile):
         exit(-1)
 
     file = open(tasFile, mode='r')
-    # strip whitespace, remove comments, etc.
-    data = [y for y in (removeComments(x).strip() for x in file.readlines()) if len(y) != 0]
+    # remove comments, strip whitespace, and remove blank lines
+    # gives a int/string pair where the int is the line number
+    lines: List[Tuple[int, str]] = [y for y in enumerate((removeComments(x).strip() for x in file.readlines()), start=1) if y[1]]
 
     file.close()
 
-    return processTASLines(data)
+    return processTASLines(lines)
 
 def getTASPath():
     """Parses command line arguments and retrieves a path. 
