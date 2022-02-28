@@ -61,4 +61,6 @@ namespace hooks {
 
 	// returns the timestep to take in the main engine loop
 	DECLARE_HOOK(MainLoop__getLimitedDt, float, MainLoop* thisptr);
+
+	DECLARE_FUNC(RaceManager__exitRace, void, RaceManager* thisptr, bool delete_world);
 }

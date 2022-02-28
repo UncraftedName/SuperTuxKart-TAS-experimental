@@ -113,6 +113,7 @@ void ScriptManager::load_map() {
 	*/
 	using namespace hooks;
 
+	ORIG_RaceManager__exitRace(*g_race_manager, true);
 	ORIG_DeviceManager__setAssignMode((**input_manager).m_device_manager, ASSIGN);
 	auto device = ORIG_DeviceManager__getLatestUsedDevice((**input_manager).m_device_manager);
 	auto profile = (**m_player_manager).m_current_player;
