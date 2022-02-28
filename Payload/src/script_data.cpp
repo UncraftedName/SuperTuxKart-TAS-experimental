@@ -100,7 +100,7 @@ void ScriptManager::send_game_input(EKEY_CODE key, bool key_pressed) {
 
 void ScriptManager::load_map() {
 	/*
-	* This is equivalent to the following game code:
+	* This is roughly equivalent to the following game code:
 	*
 	* input_manager->getDeviceManager()->setAssignMode(ASSIGN);
 	* auto device = input_manager->getDeviceManager()->getLatestUsedDevice();
@@ -118,7 +118,6 @@ void ScriptManager::load_map() {
 	auto profile = (**m_player_manager).m_current_player;
 	ORIG_StateManager__createActivePlayer(*state_manager_singleton, profile, device);
 	ORIG_RaceManager__setPlayerKart(*g_race_manager, 0, script_data->player_name.c_str());
-	// (**g_race_manager).setNumKarts(0); // <-- fix this
-	// TODO set num laps, difficulty
+	(**g_race_manager).setupBasicRace(script_data->difficulty, script_data->laps);
 	ORIG_RaceManager__startSingleRace(*g_race_manager, script_data->map_name.c_str(), 1, false);
 }

@@ -55,6 +55,7 @@ public:
 	std::string player_name;
 	int ai_count = 0;
 	int laps = 0;
+	Difficulty difficulty = DIFFICULTY_EASY;
 	std::vector<Framebulk> framebulks;
 
 	void fill_framebulk_data(const char* buf, size_t size);

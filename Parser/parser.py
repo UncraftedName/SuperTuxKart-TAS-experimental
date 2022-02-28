@@ -19,8 +19,6 @@ from typing import List
 
 from client import Client_Socket, MessageType
 
-test_path = "./scripts/tasfile.peng"
-
 def encodeStr(s):
     return s.encode('utf-8') + b'\x00'
 
@@ -34,12 +32,23 @@ def encodeFloat(f):
     return struct.pack('f', f)
 
 
+# these flags must line up with the payload
+
 FLAG_ACCEL     = 1
 FLAG_BREAK     = 1 << 1
 FLAG_ABILITY   = 1 << 2
 FLAG_NITRO     = 1 << 3
 FLAG_SKID      = 1 << 4
 FLAG_SET_SPEED = 1 << 5
+
+# header keywords
+
+KEYWORD_MAP = 'map'
+KEYWORD_KART_NAME = 'kart_name'
+KEYWORD_NUM_LAPS = 'num_laps'
+KEYWORD_DIFFICULTY = 'difficulty'
+
+# framebulk keywords
 
 KEYWORD_PLAYSPEED = 'playspeed'
 
@@ -78,36 +87,49 @@ def processTASHeader(header):
     """
     header_bit_array = b''
 
-    results = re.findall(r'map\s+"([A-z ]+)"', header[0])
+    results = re.findall(rf'{KEYWORD_MAP}\s+"([A-z ]+)"', header[0])
     if not results: # check if list is empty
-        print("Warning: Value for map not found.")
+        print(f"Value for '{KEYWORD_MAP}' not found.")
         return
     bit_output = encodeStr(results[0])
     header_bit_array += bit_output
 
 
-    results = re.findall('kart_name\s+"([A-z ]+)"', header[1])
+    results = re.findall(rf'{KEYWORD_KART_NAME}\s+"([A-z ]+)"', header[1])
     if not results: # check if list is empty
-        print("Warning: Value for kart_name not found.")
+        print(f"Value for '{KEYWORD_KART_NAME}' not found!")
         return
     bit_output = encodeStr(results[0])
     header_bit_array += bit_output
 
+    
+    # results = re.findall('num_ai_karts\s+([\d]+)', header[2])
+    # if not results: # check if list is empty
+    #     print("Warning: Value for num_ai_karts not found.")
+    #     return
+    # bit_output = encodeInt(int(results[0]))
+    # header_bit_array += bit_output
 
-    results = re.findall('num_ai_karts\s+([\d]+)', header[2])
+    # hard code number of AI karts to be 0, easier than changing the format
+    header_bit_array += encodeInt(0)
+
+    results = re.findall(rf'{KEYWORD_NUM_LAPS}\s+(-?[\d]+)', header[2])
     if not results: # check if list is empty
-        print("Warning: Value for num_ai_karts not found.")
+        print(f"Value for '{KEYWORD_NUM_LAPS}' not found!")
         return
     bit_output = encodeInt(int(results[0]))
     header_bit_array += bit_output
 
 
-    results = re.findall('num_laps\s+(-?[\d]+)', header[3])
-    if not results: # check if list is empty
-        print("Warning: Value for num_laps not found.")
+    results = re.findall(rf'{KEYWORD_DIFFICULTY}\s+(\d+)', header[3])
+    if not results:
+        print(f"Value for '{KEYWORD_DIFFICULTY}' not found!")
         return
-    bit_output = encodeInt(int(results[0]))
-    header_bit_array += bit_output
+    diff_int = int(results[0])
+    if diff_int < 0 or diff_int > 3:
+        print(f"Invalid value for '{KEYWORD_DIFFICULTY}', expected 0-3, got {diff_int}.")
+        return
+    header_bit_array += encodeInt(diff_int)
 
     return header_bit_array
 
@@ -124,6 +146,8 @@ def processTASLines(data):
     Dictionary -- dictionary containing all data in parsed TAS script
     """
     header = processTASHeader(data[:4])
+    if not header:
+        exit(-1)
     # begin parsing framebulks
     if not "frames" in data[4]:
         print("Error: Did not find start of framebulks. Exiting...")

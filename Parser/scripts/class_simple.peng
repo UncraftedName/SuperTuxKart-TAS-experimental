@@ -1,7 +1,7 @@
 map          "olivermath"
 kart_name    "tux"
-num_ai_karts 0
 num_laps     1
+difficulty   2
 
 frames // ab|fns|angle|ticks|
 

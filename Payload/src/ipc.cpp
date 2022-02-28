@@ -129,6 +129,9 @@ bool IPC::process_msg(const char* buf, size_t size, MessageType type) {
 			script->laps = *(int*)buf;
 			buf += 4;
 
+			script->difficulty = *(Difficulty*)buf;
+			buf += 4;
+
 			// read framebulk data
 
 			script->fill_framebulk_data(buf, size - (buf - buf_orig));

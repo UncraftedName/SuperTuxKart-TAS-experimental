@@ -43,13 +43,17 @@ namespace std {
 		char* alias;
 		size_t size;
 		union {
-			size_t unknown; // seems to copy from size when buf is not used
+			size_t unknown; // seems to copy from size when buf is not used (might be capacity)
 			char buf[16];
 		};
 
+		str_wrap(const str_wrap& s) : str_wrap(s.alias, s.size) {}
+
+		str_wrap(const char* str) : str_wrap(str, strlen(str)) {}
+
 		// std::string will store the string locally if it's less than 16 chars long
-		str_wrap(const char* str) {
-			size = strlen(str);
+		str_wrap(const char* str, size_t size) {
+			this->size = size;
 			size_t capacity = size | 15; // rounds up to nearest 16 (-1) since alignment exists
 			if (size < 16) {
 				alias = buf;
@@ -57,7 +61,7 @@ namespace std {
 				alias = new char[capacity + 1]; // +1 for null terminator
 				unknown = size;
 			}
-			strcpy_s(alias, capacity, str);
+			memcpy(alias, str, size);
 		}
 
 		~str_wrap() {
@@ -67,10 +71,37 @@ namespace std {
 	};
 
 
-	// std::vector replacement
+	// std::vector replacement, does not work for std::vector<bool>
 	template <class T>
 	struct vec_wrap {
-		T *first, *last, *end;
+
+		T *first, *last;
+		size_t capacity;
+
+		void clear() {
+			if (!empty())
+				delete[] first; // TODO call destructor
+			first = last = nullptr;
+			capacity = 0;
+		}
+
+		bool empty() const {
+			return capacity == 0;
+		}
+
+		void push_back(T& val) {
+			if (empty() || (last - first) / sizeof(T) + 1 > capacity) {
+				// grow
+				size_t new_capacity = empty() ? 4 : capacity * 2;
+				T* new_arr = new T[new_capacity];
+				memcpy(new_arr, first, capacity);
+				delete[] first;
+				last = new_arr + (last - first);
+				first = new_arr;
+				capacity = new_capacity;
+			}
+			*++last = val;
+		}
 	};
 }
 
@@ -86,7 +117,31 @@ enum Difficulty: uint32_t {
 	DIFFICULTY_NONE
 };
 
-enum AISuperPower: uint32_t {
+enum MajorRaceModeType: uint32_t {
+	MAJOR_MODE_GRAND_PRIX = 0,
+	MAJOR_MODE_SINGLE
+};
+
+enum MinorRaceModeType: int32_t {
+	MINOR_MODE_NONE = -1,
+
+	MINOR_MODE_NORMAL_RACE = 1100,
+	MINOR_MODE_TIME_TRIAL,
+	MINOR_MODE_FOLLOW_LEADER = 1002,
+
+	MINOR_MODE_3_STRIKES = 2000,
+	MINOR_MODE_FREE_FOR_ALL,
+	MINOR_MODE_CAPTURE_THE_FLAG,
+	MINOR_MODE_SOCCER,
+
+	MINOR_MODE_EASTER_EGG = 3000,
+
+	MINOR_MODE_OVERWORLD = 4000,
+	MINOR_MODE_TUTORIAL,
+	MINOR_MODE_CUTSCENE
+};
+
+enum AISuperPower: uint8_t {
 	SUPERPOWER_NONE = 0,
 	SUPERPOWER_NOLOK_BOSS = 1
 };
@@ -113,27 +168,34 @@ struct PlayerManager {
 	PlayerProfile* m_current_player;
 };
 
-// TODO this strucuture is probably incorrect
 // pretty much anything that's a vector in here is (probably) a list of what will happen for the next map(s), we only care about 1
 struct RaceManager {
 	char __pad0[32];
 	Difficulty m_difficulty;
-	char __pad1[36];
+	MajorRaceModeType m_major_mode;
+	MinorRaceModeType m_minor_mode;
+	char __pad1[28];
 	std::vec_wrap<std::str_wrap> m_tracks;
 	char __pad2[8];
 	std::vec_wrap<int> m_num_laps;
-	char __pad3[56]; // this has m_reverse_track list in it, but it seems like a vector<bool> is treated differently to a normal vector
+	char __pad3[64]; // this has m_reverse_track list in it, might need custom vector<bool> implementation
 	std::str_wrap m_ai_kart_override;
 	AISuperPower m_ai_superpower;
-	char __pad4[4];
+	char __pad4[7];
 	std::vec_wrap<std::str_wrap> m_ai_kart_list; // we might be able to use this to set the specific AI karts
-	char __pad5[208];
+	char __pad5[216];
 	int m_num_karts;
 
-	void setNumKarts(int num) {
-		m_num_karts = num;
-		// m_ai_kart_override = ""; // TODO this doesn't work
+	void setupBasicRace(Difficulty difficulty, int num_laps) {
+		m_difficulty = difficulty;
+		// TODO
+		// m_num_laps.clear();
+		// m_num_laps.push_back(num_laps);
+		m_num_karts = 0;
+		m_ai_kart_override = "";
 		m_ai_superpower = SUPERPOWER_NONE;
+		m_major_mode = MAJOR_MODE_SINGLE;
+		m_minor_mode = MINOR_MODE_TIME_TRIAL;
 	}
 };
 
