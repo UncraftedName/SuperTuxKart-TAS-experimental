@@ -13,11 +13,13 @@ import pathlib
 import re
 import struct
 import ctypes
+import os
+import argparse
 from typing import List
 
 from client import Client_Socket, MessageType
 
-test_path = "./test/tasfile.peng"
+test_path = "./scripts/tasfile.peng"
 
 def encodeStr(s):
     return s.encode('utf-8') + b'\x00'
@@ -176,12 +178,26 @@ def parseTAS(tasFile):
 
     return processTASLines(data)
 
+def getTASPath():
+    """Parses command line arguments and retrieves a path. 
+    If no path is given then the default path is used instead.
+
+    Return:
+    str -- String representing the path to the TAS script to be parsed
+    """
+    default = "./scripts/tasfile.peng"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--path', type=str)
+    args = parser.parse_args()
+    if args.path == None:
+        print("Notice: No path given. Using default path:", default)
+        return default
+    return args.path
 
 def main():
-    """
-    """
-    tasInfo = parseTAS(test_path)
-    print("final tas bitarray:", tasInfo)
+    # Get path to TAS script
+    tas_path = getTASPath()
+    tasInfo = parseTAS(tas_path)
 
     # Open Client socket and send data to Payload
     sock = Client_Socket()
