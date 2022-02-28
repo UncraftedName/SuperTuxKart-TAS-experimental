@@ -75,6 +75,7 @@ namespace hooks {
 			MH_FAILED(MH_Initialize()) ||
 			MH_FAILED_HOOK(InputManager__input,    0x17d690) ||
 			MH_FAILED_HOOK(MainLoop__getLimitedDt, 0x219770) ||
+			MH_FAILED_HOOK(RaceManager__exitRace,  0x2f4330) ||
 			MH_FAILED(MH_ApplyQueued())
 		) return stat;
 
@@ -87,7 +88,6 @@ namespace hooks {
 		SET_FUNC_PTR(StateManager__createActivePlayer,   0x437640);
 		SET_FUNC_PTR(RaceManager__setPlayerKart,         0x2ed210);
 		SET_FUNC_PTR(DeviceManager__setAssignMode,       0x171990);
-		SET_FUNC_PTR(RaceManager__exitRace,              0x2f4330);
 
 
 		// init global pointers
@@ -153,5 +153,11 @@ namespace hooks {
 		}
 		prev_time = GetTickCount64();
 		return dt;
+	}
+
+
+	void DETOUR_RaceManager__exitRace(RaceManager* thisptr, bool delete_world) {
+		g_Info->script_mgr.stop_script();
+		ORIG_RaceManager__exitRace(thisptr, delete_world);
 	}
 }
