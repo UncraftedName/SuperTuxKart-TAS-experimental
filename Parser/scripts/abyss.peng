@@ -5,7 +5,6 @@ num_laps     1
 
 frames // ab|fns|angle|ticks|
 
-playspeed -1
 --|---|0|600| // wait for match start
 
 // first sharp loop

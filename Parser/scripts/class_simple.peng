@@ -1,0 +1,30 @@
+map          "olivermath"
+kart_name    "tux"
+num_ai_karts 0
+num_laps     1
+
+frames // ab|fns|angle|ticks|
+
+playspeed 2
+--|---|0|500| // wait for match start
+a-|---|0|100|
+a-|---|-1|40|
+a-|---|0|30|
+// right drift
+a-|--s|1|200|
+a-|---|1|20|
+a-|---|0|40|
+// left drift
+a-|--s|-1|180|
+a-|-n-|-1|20|
+// boost through straight passage
+a-|-n-|0|80|
+a-|-n-|-1|30|
+a-|---|0|100|
+// start left skid
+a-|--s|-1|10|
+a-|--s|0|360|
+a-|---|0|10|
+a-|---|1|40|
+a-|---|0|100|
+playspeed 0
