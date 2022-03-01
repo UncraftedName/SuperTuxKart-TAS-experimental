@@ -15,7 +15,7 @@ import struct
 import argparse
 from typing import List, Tuple, Callable
 
-from client import Client_Socket, MessageType
+from client import ClientSocket, MessageType
 
 
 FLAG_ACCEL     = 1
@@ -149,7 +149,7 @@ def get_field_bits(fields: List[str]) -> int:
 
 
 def parse_header(lines: List[Tuple[int, str]]) -> bytes:
-    """parse script header and convert to bytes
+    """Parse script header and convert to bytes.
 
     Keyword arguments:
     lines -- all lines in the script before the 'frames' keyword,
@@ -165,6 +165,8 @@ def parse_header(lines: List[Tuple[int, str]]) -> bytes:
     ))
 
     fields_dict = {}
+
+    # go through each line and add any header field values to the dict
     for m, line_num, line in ((re.match(header_fields_regex, line[1]), *line) for line in lines if line):
         if m:
             for k, v in m.groupdict().items():
@@ -176,14 +178,17 @@ def parse_header(lines: List[Tuple[int, str]]) -> bytes:
     # validate header values
 
     # check that all mandatory keys exist
-    for key in {KW_MAP, KW_KART_NAME, KW_NUM_LAPS, KW_DIFFICULTY} - fields_dict.keys():
-        print(f"Value for '{key}' not found.")
+    for k in {KW_MAP, KW_KART_NAME, KW_NUM_LAPS, KW_DIFFICULTY} - fields_dict.keys():
+        print(f"Value for '{k}' not found.")
         exit(1)
 
     def validate_field(key: str, convert_func: Callable, validate_func: Callable) -> bool:
-        # key - header key
-        # convert_func - tries to convert the value to a new value (e.g. str -> int)
-        # validate_func - returns true if the new value is valid
+        """Converts a field from fields_dict to a different value and checks if that value makes sense.
+
+        key - header key
+        convert_func - tries to convert the value to a new value (e.g. str -> int)
+        validate_func - returns true if the new value is valid
+        """
         try:
             new_val = convert_func(fields_dict[key])
             success = validate_func(new_val)
@@ -193,15 +198,18 @@ def parse_header(lines: List[Tuple[int, str]]) -> bytes:
         except:
             return False
 
+    # num_laps should be -1 or positive int
     if not validate_field(KW_NUM_LAPS, lambda s: int(s), lambda n: n == -1 or n > 0):
         print(f"Invalid value '{fields_dict[KW_NUM_LAPS]}' for key '{KW_NUM_LAPS}', \
             should be a positive integer or -1 in special cases.")
         exit(1)
 
-    if not validate_field(KW_DIFFICULTY, lambda s: int(s), lambda n: n >= 0 and n <= 3):
+    # difficulty should be in [0,3]
+    if not validate_field(KW_DIFFICULTY, lambda s: int(s), lambda n: 0 <= n <= 3):
         print(f"Invalid value '{fields_dict[KW_DIFFICULTY]}' for key '{KW_DIFFICULTY}', should be 0-3.")
         exit(1)
 
+    # num_ai is currently unused but still sent, give it a default value of 0
     if KW_NUM_AI not in fields_dict:
         fields_dict[KW_NUM_AI] = 0
         if not validate_field(KW_NUM_AI, lambda s: int(s), lambda n: n >= 0):
@@ -209,19 +217,16 @@ def parse_header(lines: List[Tuple[int, str]]) -> bytes:
             exit(1)
 
     if fields_dict[KW_MAP] not in MAP_NAMES:
-        print(
-            f"Invalid map name: '{fields_dict[KW_MAP]}'. Here's a list of all valid maps:\n",
-            '\n'.join(sorted(MAP_NAMES))
-        )
+        print(f"Invalid map name: '{fields_dict[KW_MAP]}'. Here's a list of all valid maps:")
+        print('\n'.join(sorted(MAP_NAMES)))
         exit(1)
 
     if fields_dict[KW_KART_NAME] not in KART_NAMES:
-        print(
-            f"Invalid kart name: '{fields_dict[KW_KART_NAME]}'. Here's a list of all valid kart names:\n",
-            '\n'.join(sorted(KART_NAMES))
-        )
+        print(f"Invalid kart name: '{fields_dict[KW_KART_NAME]}'. Here's a list of all valid kart names:")
+        print('\n'.join(sorted(KART_NAMES)))
         exit(1)
 
+    # map + kart_name + int(num_ai) + int(num_laps) + int(difficulty)
     return (
         fields_dict[KW_MAP].encode('utf-8') + b'\x00' +
         fields_dict[KW_KART_NAME].encode('utf-8') + b'\x00' +
@@ -241,8 +246,10 @@ def parse_framebulks(lines: List[Tuple[int, str]]) -> bytes:
 
     # reeeeeeeeeeeeeeeeeeeeeeeeeeegex
     # https://stackoverflow.com/questions/12643009/regular-expression-for-floating-point-numbers
-    playspeed_re = define_field(KW_PLAYSPEED,
-        r'[+-]?(?:\d+(?:[.]\d*)?(?:[eE][+-]?\d+)?|[.]\d+(?:[eE][+-]?\d+)?)')
+    playspeed_re = define_field(
+        KW_PLAYSPEED,
+        r'[+-]?(?:\d+(?:[.]\d*)?(?:[eE][+-]?\d+)?|[.]\d+(?:[eE][+-]?\d+)?)'
+    )
 
     for line_num, line in lines:
         m = re.match(playspeed_re, line)
@@ -252,8 +259,8 @@ def parse_framebulks(lines: List[Tuple[int, str]]) -> bytes:
         else:
             # syntax for framebulks:
             # --|---|-|ticks|
-            # - indicate a field
-            fields = [x for x in line.split("|") if x and not x.isspace()] # removes spaces from list elems
+            # '-' indicates a button/field
+            fields = [x for x in line.split("|") if x and not x.isspace()]  # removes spaces from list elems
             if len(fields) != 4:
                 print(f"Warning: Error parsing framebulk (line {line_num}). Exiting...")
                 exit(1)
@@ -268,18 +275,14 @@ def parse_script(tas_file: str) -> bytes:
     Keyword arguments:
     tasFile -- TAS filename
     """
-    
-    path = pathlib.Path(tas_file)
-    if not path.is_file():
-        print("Error: File does not exist. Exiting...")
-        exit(-1)
 
     def clean_line(line: str) -> str:
-        # remove comments & uneccessary whitespace and remove blank lines
+        """Cleans each line of the input TAS script. Removes any comments,
+        unnecessary whitespace, and blank lines. Then converts to lower case."""
         return re.sub(r'\s+', ' ', line[:line.find("//")].strip().lower())
 
     with open(tas_file, 'r') as f:
-        # lines is a int/string pair where the int is the line number
+        # lines is an int/string pair: line_number/line_content
         lines: List[Tuple[int, str]] = [
             y for y in enumerate((clean_line(x) for x in f.readlines()), start=1) if y[1]
         ]
@@ -291,8 +294,7 @@ def parse_script(tas_file: str) -> bytes:
         print(f"No '{KW_FRAMES}' keyword found, not sure where header ends.")
         exit(1)
 
-    return parse_header(lines[:header_end_idx]) + \
-        parse_framebulks(lines[header_end_idx+1:])
+    return parse_header(lines[:header_end_idx]) + parse_framebulks(lines[header_end_idx+1:])
 
 
 def get_script_path() -> str:
@@ -306,18 +308,23 @@ def get_script_path() -> str:
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--path', type=str)
     args = parser.parse_args()
-    if args.path == None:
-        print("Notice: No path given. Using default path:", default)
+    if args.path is None:
+        print(f"Notice: No path given. Using default path: '{default}'")
         return default
     return args.path
 
+
 def main():
     # Get path to TAS script
-    tas_path = get_script_path()
-    script_bytes = parse_script(tas_path)
+    tas_script_path = get_script_path()
+    path = pathlib.Path(tas_script_path)
+    if not path.is_file():
+        print("Error: File does not exist. Exiting...")
+        exit(-1)
+    script_bytes = parse_script(tas_script_path)
 
     # Open Client socket and send data to Payload
-    cl_sock = Client_Socket()
+    cl_sock = ClientSocket()
     cl_sock.start()
     cl_sock.send(script_bytes, MessageType.Script)
 

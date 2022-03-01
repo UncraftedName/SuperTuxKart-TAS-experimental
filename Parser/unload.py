@@ -3,11 +3,11 @@
 # =================================================
 
 
-from client import Client_Socket, MessageType
+from client import ClientSocket, MessageType
 
 
 def main():
-    sock = Client_Socket()
+    sock = ClientSocket()
     sock.start()
     sock.send(b'', MessageType.Unload)
     print('DLL successfully unloaded')

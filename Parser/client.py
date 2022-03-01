@@ -1,6 +1,6 @@
 # =================================================
 # Client Socket usage:
-#   Create an object of Client_Socket: sock
+#   Create an object of ClientSocket: sock
 #   Call sock.start() to connect to the IPC server
 #
 #   To send data, call sock.send(msg, type) where
@@ -18,26 +18,26 @@ from enum import Enum
 
 class MessageType(Enum):
     # 0-255 range
-    Script = 0 # we're sending a TAS script
-    Unload = 1 # we're telling the payload to rid itself
+    Script = 0  # we're sending a TAS script
+    Unload = 1  # we're telling the payload to rid itself
 
 
-addr = ("127.0.0.1", 27015) # IPC connection address
+addr = ("127.0.0.1", 27015)  # IPC connection address
 
 
-class Client_Socket:
-    """Client_Socket class
-    
+class ClientSocket:
+    """ClientSocket class
+
     Used to create a socket that can send and receive tcp packets
     from a server
 
-    Client_Socket should be closed by the server once IPC transfers
+    ClientSocket should be closed by the server once IPC transfers
     are completed
     """
 
     def __init__(self):
-        """initialize Client_Socket object
-        
+        """initialize ClientSocket object
+
         Creates a socket that connects to an ipv4 address, and sends data
         using tcp
         """
@@ -62,10 +62,9 @@ class Client_Socket:
         except:
             print("Error: Unable to connect to host, run the Injector and try again.")
             exit(1)
-        print ("connection successful")
+        print("connection successful")
 
-
-    def send(self, msg : bytes, type: MessageType) -> None:
+    def send(self, msg: bytes, m_type: MessageType) -> None:
         """sends a message from the client to the server
 
         Keyword arguments:
@@ -77,9 +76,8 @@ class Client_Socket:
         """
         # Send the length of the full message as four bytes, then the message type,
         # then the full message, data is sent in host endian.
-        msg = struct.pack('iB', len(msg) + 1, type.value) + msg
+        msg = struct.pack('iB', len(msg) + 1, m_type.value) + msg
         self.client_socket.send(msg)
-        
 
     def recv(self) -> bytes:
         """retrieves a message from the server
@@ -90,15 +88,10 @@ class Client_Socket:
         Return:
         bytes() -- a bytes object containing the message sent by the server
         """
-        # stores the number of bytes in message into msg_len
-        msg_len = struct.unpack("i", self.client_socket.recv(4))
-        if len(msg) <= 0:
+        # first 4 bytes should be msg_len
+        msg_len = struct.unpack("i", self.client_socket.recv(4))[0]
+        msg = self.client_socket.recv(msg_len)
+        if len(msg) != msg_len:
             print("Error: Invalid message received from server")
             exit(1)
-        # loop until msg_len bytes are received from the server
-        full_msg = bytes()
-        while msg_len > 0:
-            msg = self.client_socket.recv(1024)
-            full_msg += msg
-            msg_len -= len(msg)
-        return full_msg
+        return msg
