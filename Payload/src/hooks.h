@@ -64,4 +64,7 @@ namespace hooks {
 	
 	// exits track
 	DECLARE_HOOK(RaceManager__exitRace, void, RaceManager* thisptr, bool delete_world);
+
+	// removes all players from the player list
+	DECLARE_FUNC(StateManager__resetActivePlayers, void, StateManager* thisptr);
 }

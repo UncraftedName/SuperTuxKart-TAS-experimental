@@ -153,7 +153,11 @@ enum PlayerAssignMode {
 };
 
 
-struct DeviceManager;
+struct DeviceManager {
+	char __pad[0x78];
+	void* m_single_player;
+};
+
 struct StateManager;
 struct InputDevice;
 struct PlayerProfile;

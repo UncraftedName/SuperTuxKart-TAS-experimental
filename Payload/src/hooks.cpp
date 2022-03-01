@@ -38,6 +38,7 @@ namespace hooks {
 	_DeviceManager__setAssignMode ORIG_DeviceManager__setAssignMode = nullptr;
 	_MainLoop__getLimitedDt ORIG_MainLoop__getLimitedDt = nullptr;
 	_RaceManager__exitRace ORIG_RaceManager__exitRace = nullptr;
+	_StateManager__resetActivePlayers ORIG_StateManager__resetActivePlayers = nullptr;
 
 	static uint64_t prev_time = 0;
 
@@ -88,6 +89,7 @@ namespace hooks {
 		SET_FUNC_PTR(StateManager__createActivePlayer,   0x437640);
 		SET_FUNC_PTR(RaceManager__setPlayerKart,         0x2ed210);
 		SET_FUNC_PTR(DeviceManager__setAssignMode,       0x171990);
+		SET_FUNC_PTR(StateManager__resetActivePlayers,   0x437510);
 
 
 		// init global pointers
