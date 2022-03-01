@@ -17,18 +17,6 @@ from typing import List, Tuple, Callable
 
 from client import Client_Socket, MessageType
 
-def encodeStr(s):
-    return s.encode('utf-8') + b'\x00'
-
-def encodeShort(n):
-    return struct.pack('h', n)
-
-def encodeInt(n):
-    return struct.pack('i', n)
-
-def encodeFloat(f):
-    return struct.pack('f', f)
-
 
 FLAG_ACCEL     = 1
 FLAG_BREAK     = 1 << 1
@@ -119,17 +107,23 @@ KW_PLAYSPEED = 'playspeed'
 
 
 def define_field(key: str, pattern: str = r'[^\s\'"]+') -> str:
-    # Returns a regex pattern with a named group for a key/value pair, where 'pattern'
-    # is the regex for the value. The value may optionally be single or double quoted.
-    # E.g. (key='map', pattern='\w+') will match "map 'e'" and groupdict()['map']='e'.
+    """Gives a regex pattern for a key/value with a named group for value; 'pattern'
+    is the regex for the value. The value may optionally be single or double quoted.
+    E.g. key='map', pattern='\w+' will match "map 'e'" and groupdict()['map']='e'"""
     return rf"""^{key}\s+=?\s*(?:"(?={pattern}")|'(?={pattern}'))?(?P<{key}>{pattern})['"]?$"""
 
 
-def encodeFramebulk(field_bits: int, turn_ang: float, num_ticks: int) -> bytes:
+def encode_framebulk(field_bits: int, turn_ang: float, num_ticks: int) -> bytes:
     return struct.pack('hhf', field_bits, num_ticks, turn_ang)
 
 
-def getFieldBits(fields: List[str]) -> int:
+def get_field_bits(fields: List[str]) -> int:
+    """Converts the framebulk fields to an int that has its bits set
+    to denote what buttons should be pressed for this framebulk.
+
+    Keyword arguments:
+    fields -- each 'section' of the framebulk; <section 1>|<section 2>|...|
+    """
     acc  = fields[0]
     misc = fields[1]
 
@@ -154,7 +148,7 @@ def getFieldBits(fields: List[str]) -> int:
     return field_bits
 
 
-def processTASHeader(lines: List[Tuple[int, str]]) -> bytes:
+def parse_header(lines: List[Tuple[int, str]]) -> bytes:
     """parse script header and convert to bytes
 
     Keyword arguments:
@@ -229,86 +223,79 @@ def processTASHeader(lines: List[Tuple[int, str]]) -> bytes:
         exit(1)
 
     return (
-        encodeStr(fields_dict[KW_MAP]) +
-        encodeStr(fields_dict[KW_KART_NAME]) +
+        fields_dict[KW_MAP].encode('utf-8') + b'\x00' +
+        fields_dict[KW_KART_NAME].encode('utf-8') + b'\x00' +
         struct.pack('3i', *(fields_dict[x] for x in (KW_NUM_AI, KW_NUM_LAPS, KW_DIFFICULTY)))
     )
 
 
-def processTASLines(lines: List[Tuple[int, str]]):
-    """process lines from TAS script and return information
-    in dictionary format
-
+def parse_framebulks(lines: List[Tuple[int, str]]) -> bytes:
+    """parse script framebulks and convert to bytes
 
     Keyword arguments:
-    data -- list containing lines from TAS script
-
-    Return:
-    Dictionary -- dictionary containing all data in parsed TAS script
+    lines -- all lines in the script after the 'frames' keyword,
+        these lines are assumed to have no leading/trailing whitespace
     """
 
-    # find first line with 'frames' on it (gives index, not line number)
-    try:
-        framebulks_sep_line = next(i for i, line in enumerate(lines) if line[1].lower() == KW_FRAMES)
-    except StopIteration:
-        print(f"No '{KW_FRAMES}' keyword found, not sure where header ends.")
-        exit(1)
+    fb_bytes = b''
 
-    header = processTASHeader(lines[:framebulks_sep_line])
+    # reeeeeeeeeeeeeeeeeeeeeeeeeeegex
+    # https://stackoverflow.com/questions/12643009/regular-expression-for-floating-point-numbers
+    playspeed_re = define_field(KW_PLAYSPEED,
+        r'[+-]?(?:\d+(?:[.]\d*)?(?:[eE][+-]?\d+)?|[.]\d+(?:[eE][+-]?\d+)?)')
 
-    # parse framebulks
-
-    # syntax for framebulks:
-    # --|---|-|0|
-    # - indicate a field
-    # 0 indicates number of ticks
-
-    payload = b''
-    for line_num, line in lines[framebulks_sep_line+1:]:
-        if line.lower().startswith(KW_PLAYSPEED):
-            field_bits = FLAG_SET_SPEED
-            # get everything after 'playspeed' and interpret as float, send as an angle
-            ang = float(line[len(KW_PLAYSPEED):])
-            ticks = 0
+    for line_num, line in lines:
+        m = re.match(playspeed_re, line)
+        if m:
+            # special playspeed framebulk - 0 ticks, angle is treated as new play speed
+            fb_bytes += encode_framebulk(FLAG_SET_SPEED, float(m.groupdict()[KW_PLAYSPEED]), 0)
         else:
+            # syntax for framebulks:
+            # --|---|-|ticks|
+            # - indicate a field
             fields = [x for x in line.split("|") if x and not x.isspace()] # removes spaces from list elems
             if len(fields) != 4:
                 print(f"Warning: Error parsing framebulk (line {line_num}). Exiting...")
                 exit(1)
-            field_bits = getFieldBits(fields)
-            ang = float(fields[2])
-            ticks = int(fields[3])
-        payload += encodeFramebulk(field_bits, ang, ticks)
+            fb_bytes += encode_framebulk(get_field_bits(fields), float(fields[2]), int(fields[3]))
 
-    return header + payload
+    return fb_bytes
 
-def removeComments(string): # Removes all comments from script
-    return string[:string.find("//")]
 
-def parseTAS(tasFile):
+def parse_script(tas_file: str) -> bytes:
     """parse TAS file
-
 
     Keyword arguments:
     tasFile -- TAS filename
     """
     
-    print("In parseTAS")
-    path = pathlib.Path(tasFile)
+    path = pathlib.Path(tas_file)
     if not path.is_file():
         print("Error: File does not exist. Exiting...")
         exit(-1)
 
-    file = open(tasFile, mode='r')
-    # remove comments, strip whitespace, and remove blank lines
-    # gives a int/string pair where the int is the line number
-    lines: List[Tuple[int, str]] = [y for y in enumerate((removeComments(x).strip() for x in file.readlines()), start=1) if y[1]]
+    def clean_line(line: str) -> str:
+        # remove comments & uneccessary whitespace and remove blank lines
+        return re.sub(r'\s+', ' ', line[:line.find("//")].strip().lower())
 
-    file.close()
+    with open(tas_file, 'r') as f:
+        # lines is a int/string pair where the int is the line number
+        lines: List[Tuple[int, str]] = [
+            y for y in enumerate((clean_line(x) for x in f.readlines()), start=1) if y[1]
+        ]
 
-    return processTASLines(lines)
+    # find first line with 'frames' on it
+    try:
+        header_end_idx = next(i for i, line in enumerate(lines) if line[1] == KW_FRAMES)
+    except StopIteration:
+        print(f"No '{KW_FRAMES}' keyword found, not sure where header ends.")
+        exit(1)
 
-def getTASPath():
+    return parse_header(lines[:header_end_idx]) + \
+        parse_framebulks(lines[header_end_idx+1:])
+
+
+def get_script_path() -> str:
     """Parses command line arguments and retrieves a path. 
     If no path is given then the default path is used instead.
 
@@ -326,13 +313,13 @@ def getTASPath():
 
 def main():
     # Get path to TAS script
-    tas_path = getTASPath()
-    tasInfo = parseTAS(tas_path)
+    tas_path = get_script_path()
+    script_bytes = parse_script(tas_path)
 
     # Open Client socket and send data to Payload
-    sock = Client_Socket()
-    sock.start()
-    sock.send(tasInfo, MessageType.Script)
+    cl_sock = Client_Socket()
+    cl_sock.start()
+    cl_sock.send(script_bytes, MessageType.Script)
 
 
 if __name__ == "__main__":
