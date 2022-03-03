@@ -21,6 +21,8 @@ void ScriptManager::set_new_script(ScriptData* data) {
 
 
 void ScriptManager::stop_script() {
+	if (script_data)
+		send_framebulk_inputs(Framebulk()); // clear keys
 	delete script_data;
 	script_data = nullptr;
 	has_active_script = false;
@@ -42,18 +44,7 @@ void ScriptManager::tick_signal() {
 
 	for (;;) {
 		Framebulk& fb = script_data->framebulks[fb_idx];
-
-		// hard coded keys for each flag
-		const EKEY_CODE flag_keys[] = {IRR_KEY_UP, IRR_KEY_DOWN, IRR_KEY_SPACE, IRR_KEY_N, IRR_KEY_V};
-
-		for (int i = 0; i < Framebulk::NUM_BUTTON_FLAGS; i++)
-			send_game_input(flag_keys[i], fb.flags & (1 << i));
-
-		// TODO: send joystick inputs instead of just hard left/right
-		bool r_key = fb.turn_angle > 0;
-		bool l_key = fb.turn_angle < 0;
-		send_game_input(IRR_KEY_RIGHT, r_key);
-		send_game_input(IRR_KEY_LEFT, l_key);
+		send_framebulk_inputs(fb);
 
 		if (fb.set_speed) {
 			play_speed = fb.new_play_speed;
@@ -75,7 +66,20 @@ void ScriptManager::tick_signal() {
 }
 
 
-void ScriptManager::send_game_input(EKEY_CODE key, bool key_pressed) {
+void ScriptManager::send_framebulk_inputs(const Framebulk& fb) {
+	// hard coded keys for each flag
+	const EKEY_CODE flag_keys[] = {IRR_KEY_UP, IRR_KEY_DOWN, IRR_KEY_SPACE, IRR_KEY_N, IRR_KEY_V};
+
+	for (int i = 0; i < Framebulk::NUM_BUTTON_FLAGS; i++)
+		send_keyboard_input(flag_keys[i], fb.flags & (1 << i));
+
+	// TODO: send joystick inputs instead of just hard left/right
+	send_keyboard_input(IRR_KEY_RIGHT, fb.turn_angle > 0);
+	send_keyboard_input(IRR_KEY_LEFT, fb.turn_angle < 0);
+}
+
+
+void ScriptManager::send_keyboard_input(EKEY_CODE key, bool key_pressed) {
 	SEvent e = {};
 	e.EventType = EET_KEY_INPUT_EVENT;
 	e.KeyInput.Char = U'\0'; // might need to set this for actual keys

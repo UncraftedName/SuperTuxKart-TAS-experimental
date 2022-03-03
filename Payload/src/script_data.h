@@ -36,16 +36,6 @@ public:
 		num_ticks = *(uint16_t*)(buf + 2);
 		turn_angle = *(float*)(buf + 4);
 	}
-
-private:
-	// probably won't be used
-	static const __int64 mask_accel = 0x0010000000000000;
-	static const __int64 mask_brake = 0x0008000000000000;
-	static const __int64 mask_fire  = 0x0004000000000000;
-	static const __int64 mask_nitro = 0x0002000000000000;
-	static const __int64 mask_skid  = 0x0001000000000000;
-	static const __int64 mask_ticks = 0x0000FFFF00000000;
-	static const __int64 mask_angle = 0x00000000FFFFFFFF;
 };
 
 
@@ -79,10 +69,12 @@ private:
 	// current playspeed, negative values means as fast as possible
 	float play_speed = 1;
 
-	// only handles key codes, TODO: doesn't handle controller inputs
-	void send_game_input(EKEY_CODE key, bool key_pressed);
 	// loads the map in script data
 	void load_map();
+	// convert framebulk to key/controller inputs
+	void send_framebulk_inputs(const Framebulk&);
+	// only handles key codes
+	void send_keyboard_input(EKEY_CODE key, bool key_pressed);
 
 public:
 
