@@ -29,13 +29,15 @@ namespace hooks {
 	extern bool* g_is_no_graphics;
 
 
-	// use this if you just want a function pointer
+	// Use this if you just want a function pointer. Creates a typedef of the function pointer
+	// called _name and declares the function pointer to the "original" game function.
 	#define DECLARE_FUNC(name, ret, ...) \
 		typedef ret (*_##name)(__VA_ARGS__); \
 		extern _##name ORIG_##name;
 
 
-	// use this if you actually want to hook a function and implement a detour
+	// Use this if you actually want to hook a function and implement a detour. Same macro as
+	// above, but also declares a function called DETOUR_name which MinHook will jump to.
 	#define DECLARE_HOOK(name, ret, ...) \
 		DECLARE_FUNC(name, ret, __VA_ARGS__) \
 		ret DETOUR_##name(__VA_ARGS__);

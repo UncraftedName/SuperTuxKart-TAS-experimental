@@ -30,15 +30,19 @@ namespace hooks {
 
 	// pointers to game functions
 
-	_InputManager__input ORIG_InputManager__input = nullptr;
-	_RaceManager__startSingleRace ORIG_RaceManager__startSingleRace = nullptr;
-	_DeviceManager__getLatestUsedDevice ORIG_DeviceManager__getLatestUsedDevice = nullptr;
-	_StateManager__createActivePlayer ORIG_StateManager__createActivePlayer = nullptr;
-	_RaceManager__setPlayerKart ORIG_RaceManager__setPlayerKart = nullptr;
-	_DeviceManager__setAssignMode ORIG_DeviceManager__setAssignMode = nullptr;
-	_MainLoop__getLimitedDt ORIG_MainLoop__getLimitedDt = nullptr;
-	_RaceManager__exitRace ORIG_RaceManager__exitRace = nullptr;
-	_StateManager__resetActivePlayers ORIG_StateManager__resetActivePlayers = nullptr;
+	#define DEFINE_GAME_FUNC(name) _##name ORIG_##name = nullptr;
+
+	DEFINE_GAME_FUNC(InputManager__input);
+	DEFINE_GAME_FUNC(RaceManager__startSingleRace);
+	DEFINE_GAME_FUNC(DeviceManager__getLatestUsedDevice);
+	DEFINE_GAME_FUNC(StateManager__createActivePlayer);
+	DEFINE_GAME_FUNC(RaceManager__setPlayerKart);
+	DEFINE_GAME_FUNC(DeviceManager__setAssignMode);
+	DEFINE_GAME_FUNC(MainLoop__getLimitedDt);
+	DEFINE_GAME_FUNC(RaceManager__exitRace);
+	DEFINE_GAME_FUNC(StateManager__resetActivePlayers);
+
+	#undef DEFINE_GAME_FUNC
 
 	static uint64_t prev_time = 0;
 
