@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 #include <Windows.h>
 #include <TlHelp32.h>
 #include <psapi.h>
@@ -58,7 +59,6 @@ bool isModuleLoaded(HANDLE hProc, const wchar_t* modName) {
 			std::cout << "too few entries\n";
 		else
 			std::cout << "reason: " << GetLastErrorAsStr() << "\n";
-		system("pause");
 		exit(EXIT_FAILURE);
 	}
 
@@ -94,7 +94,6 @@ bool InjectDLL(const wchar_t* processName, const char* dllPath, const wchar_t* b
 	if (isModuleLoaded(hProc, baseDllName)) {
 		// premature exit
 		std::cout << "DLL already loaded\n";
-		system("pause");
 		return EXIT_SUCCESS;
 	}
 
@@ -128,6 +127,16 @@ bool does_file_exist(const char* filePath) {
 	return (stat(filePath, &buffer) == 0);
 }
 
+void getDllPath(const wchar_t* payloadName, wchar_t* wdllPath)
+{
+	wchar_t buffer[MAX_PATH];
+	GetModuleFileName(NULL, buffer, MAX_PATH);
+	std::wstring path = std::wstring(buffer);
+	path = path.substr(0, path.find_last_of(L"\\/")).append(L"\\").append(payloadName);
+	path.copy(wdllPath, MAX_PATH);
+	size_t nullLoc = (path.length() < MAX_PATH) ? path.length() : MAX_PATH - 1;
+	wdllPath[nullLoc] = L'\0';
+}
 
 int main(void) {
 
@@ -135,26 +144,23 @@ int main(void) {
 	const wchar_t* payloadName = L"Payload.dll";
 
 	// Get full path of dll as char array, most functions need wchars
-	// but WriteProcessMemory needs chars, which is just silly.
+	// but WriteProcessMemory needs chars
 	wchar_t wdllPath[MAX_PATH];
 	char dllPath[MAX_PATH];
-	GetFullPathName(payloadName, MAX_PATH, wdllPath, 0);
+	getDllPath(payloadName, wdllPath);
 	size_t ret;
 	wcstombs_s(&ret, dllPath, wdllPath, MAX_PATH);
 
 	if (!does_file_exist(dllPath)) {
 		std::cout << "Could not find dll file.\n";
-		system("pause");
 		return EXIT_FAILURE;
 	}
 
 	if (InjectDLL(processName, dllPath, payloadName)) {
 		std::cout << "DLL successfully injected.\n";
-		system("pause");
 		return EXIT_SUCCESS;
 	} else {
 		std::cout << "Could not inject DLL.\n";
-		system("pause");
 		return EXIT_FAILURE;
 	}
 }

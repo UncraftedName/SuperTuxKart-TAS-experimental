@@ -12,6 +12,7 @@ import pathlib
 import re
 import struct
 import argparse
+import os
 from typing import List, Tuple, Callable
 
 from client import ClientSocket, MessageType
@@ -303,6 +304,19 @@ def main():
         print("Error: File does not exist. Exiting...")
         exit(-1)
     script_bytes = parse_script(tas_script_path)
+
+    # run the injector exe
+    injector_build_path = "../x64/Debug/Injector.exe"
+    injector_release_path = "./Injector.exe"
+
+    # try the release path, on failing that try the build path
+    # if neither path exists, we have to trust that the user runs
+    # the injector on their own
+    if pathlib.Path(injector_release_path).is_file():
+        os.system(str(pathlib.Path(injector_release_path)))
+    else:
+        if pathlib.Path(injector_build_path).is_file():
+            os.system(str(pathlib.Path(injector_build_path)))
 
     # Open Client socket and send data to Payload
     cl_sock = ClientSocket()
