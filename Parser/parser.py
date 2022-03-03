@@ -312,16 +312,19 @@ def main():
     # try the release path, on failing that try the build path
     # if neither path exists, we have to trust that the user runs
     # the injector on their own
+    rc = 1
     if pathlib.Path(injector_release_path).is_file():
-        os.system(str(pathlib.Path(injector_release_path)))
+        rc = os.system(str(pathlib.Path(injector_release_path)))
     else:
         if pathlib.Path(injector_build_path).is_file():
-            os.system(str(pathlib.Path(injector_build_path)))
+            rc = os.system(str(pathlib.Path(injector_build_path)))
 
-    # Open Client socket and send data to Payload
-    cl_sock = ClientSocket()
-    cl_sock.start()
-    cl_sock.send(script_bytes, MessageType.Script)
+    # Open Client socket and send data to Payload if the injector ran
+    # successfully
+    if rc == 0:
+        cl_sock = ClientSocket()
+        cl_sock.start()
+        cl_sock.send(script_bytes, MessageType.Script)
 
 
 if __name__ == "__main__":

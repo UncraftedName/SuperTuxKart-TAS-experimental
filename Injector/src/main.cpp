@@ -94,7 +94,7 @@ bool InjectDLL(const wchar_t* processName, const char* dllPath, const wchar_t* b
 	if (isModuleLoaded(hProc, baseDllName)) {
 		// premature exit
 		std::cout << "DLL already loaded\n";
-		return EXIT_SUCCESS;
+		return true;
 	}
 
 	void* loc = VirtualAllocEx(hProc, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
