@@ -5,9 +5,14 @@
 
 class IPC {
 public:
-	IPC();
+	IPC() : listen_socket(INVALID_SOCKET) {};
 	~IPC();
-	void accept_loop();
+
+	// Initialize WinSock and the listen_socket, on failure sets the failReason.
+	void init(const char*& failReason /*out*/);
+
+	// Check if we have data to read, process it if so. Should only be called once we have the hook set up.
+	void try_accept();
 
 private:
 	const char* PORT = "27015";
@@ -18,9 +23,7 @@ private:
 	};
 
 	SOCKET listen_socket;
-	SOCKET client_socket;
 
-	void recv_next(char* dest, int numBytes);
-
-	bool process_msg(const char* buf, size_t size, MessageType type);
+	// process buffer, queue unload on error
+	void process_msg(const char* buf, size_t size, MessageType type);
 };

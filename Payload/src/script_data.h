@@ -68,8 +68,6 @@ private:
 
 	// header/framebulks
 	ScriptData* script_data = nullptr;
-	// use when accessing script_data, since we might to do that from game threads & the IPC connection
-	std::recursive_mutex script_mutex;
 	// we have a script that is currently being executed
 	bool has_active_script = false;
 	// we've loaded the map in the TAS script
@@ -89,11 +87,6 @@ private:
 public:
 
 	~ScriptManager() {
-		/*
-		* Putting locks here would probably be redundant, this destructor can in theory be called at
-		* any time from Exit(), but the game can acquire the locks at any time which would result in
-		* us freeing acquired locks which is undefined behavior or something anyways.
-		*/
 		delete script_data;
 	}
 

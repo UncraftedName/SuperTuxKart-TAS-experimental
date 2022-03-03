@@ -60,13 +60,14 @@ namespace hooks {
 
 	// sets assign mode for input devices (we need to set this so that the game can map our inputs to a specific player)
 	DECLARE_FUNC(DeviceManager__setAssignMode, void, DeviceManager* thisptr, const PlayerAssignMode assignMode);
-
-	// returns the timestep to take in the main engine loop
-	DECLARE_HOOK(MainLoop__getLimitedDt, float, MainLoop* thisptr);
 	
 	// exits track
 	DECLARE_HOOK(RaceManager__exitRace, void, RaceManager* thisptr, bool delete_world);
 
 	// removes all players from the player list
 	DECLARE_FUNC(StateManager__resetActivePlayers, void, StateManager* thisptr);
+
+	// called once per engine loop to determine the next timestep to take, detour is partially implemented in asm
+	DECLARE_FUNC(MainLoop__getLimitedDt, float, MainLoop* thisptr);
+	extern "C" float DETOUR_MainLoop__getLimitedDt(MainLoop* thisptr);
 }

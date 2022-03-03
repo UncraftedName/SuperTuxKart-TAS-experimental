@@ -11,40 +11,32 @@ void ScriptData::fill_framebulk_data(const char* buf, size_t size) {
 
 
 void ScriptManager::set_new_script(ScriptData* data) {
-	script_mutex.lock();
 	stop_script();
 	script_data = data;
 	has_active_script = true;
 	map_loaded = false;
 	fb_tick = 0;
 	fb_idx = 0;
-	script_mutex.unlock();
 }
 
 
 void ScriptManager::stop_script() {
-	script_mutex.lock();
 	delete script_data;
 	script_data = nullptr;
 	has_active_script = false;
 	play_speed = 1;
 	*hooks::g_is_no_graphics = false;
-	script_mutex.unlock();
 }
 
 
 void ScriptManager::tick_signal() {
-	script_mutex.lock();
 	
-	if (!has_active_script || !script_data) {
-		script_mutex.unlock();
+	if (!has_active_script || !script_data)
 		return;
-	}
 	
 	if (!map_loaded) {
 		map_loaded = true;
 		load_map();
-		script_mutex.unlock();
 		return;
 	}
 
@@ -80,8 +72,6 @@ void ScriptManager::tick_signal() {
 		if (fb.num_ticks > 0 || (fb.set_speed && fb.new_play_speed == 0))
 			break;
 	}
-
-	script_mutex.unlock();
 }
 
 
