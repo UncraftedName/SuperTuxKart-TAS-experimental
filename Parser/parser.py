@@ -6,7 +6,6 @@
 #   Nitro
 #   Skidding
 #   Look back
-#   Rescue
 # ==================================
 
 import pathlib
@@ -26,59 +25,40 @@ FLAG_SKID      = 1 << 4
 FLAG_SET_SPEED = 1 << 5
 
 # header keywords
-
 KW_MAP        = 'map'
 KW_KART_NAME  = 'kart_name'
 KW_NUM_LAPS   = 'num_laps'
 KW_DIFFICULTY = 'difficulty'
 KW_NUM_AI     = 'num_ai_karts'
 
-# This has some maps that you normally shouldn't be able to load,
-# but I don't know/care enough to filter through all of these.
+# maps that can be loaded
 MAP_NAMES = {
     "abyss",
-    "alien_signal",
-    "ancient_colosseum_labyrinth",
-    "arena_candela_city",
-    "battleisland",
     "black_forest",
     "candela_city",
-    "cave",
     "cocoa_temple",
     "cornfield_crossing",
-    "endcutscene",
-    "featunlocked",
     "fortmagma",
-    "gplose",
-    "gpwin",
     "gran_paradiso_island",
     "hacienda",
-    "icy_soccer_field",
-    "introcutscene",
-    "introcutscene2",
-    "lasdunasarena",
-    "lasdunassoccer",
     "lighthouse",
     "mines",
     "minigolf",
     "olivermath",
-    "overworld",
-    "pumpkin_park",
+    "overworld", # can be loaded, but not an actual race track
     "ravenbridge_mansion",
     "sandtrack",
     "scotland",
     "snowmountain",
     "snowtuxpeak",
-    "soccer_field",
-    "stadium",
     "stk_enterprise",
-    "temple",
     "tutorial",
     "volcano_island",
     "xr591",
     "zengarden",
 }
 
+# characters that can race
 KART_NAMES = {
     "adiumy",
     "amanda",
@@ -101,7 +81,6 @@ KART_NAMES = {
 }
 
 # framebulk keywords
-
 KW_FRAMES    = 'frames'
 KW_PLAYSPEED = 'playspeed'
 
@@ -109,11 +88,14 @@ KW_PLAYSPEED = 'playspeed'
 def define_field(key: str, pattern: str = r'[^\s\'"]+') -> str:
     """Gives a regex pattern for a key/value with a named group for value; 'pattern'
     is the regex for the value. The value may optionally be single or double quoted.
-    E.g. key='map', pattern='\w+' will match "map 'e'" and groupdict()['map']='e'"""
+    E.g. key='map', pattern='\w+' will match "map 'e'" and groupdict()['map']='e'
+    """
     return rf"""^{key}\s+=?\s*(?:"(?={pattern}")|'(?={pattern}'))?(?P<{key}>{pattern})['"]?$"""
 
 
 def encode_framebulk(field_bits: int, turn_ang: float, num_ticks: int) -> bytes:
+    """
+    """
     return struct.pack('hhf', field_bits, num_ticks, turn_ang)
 
 
@@ -136,7 +118,7 @@ def get_field_bits(fields: List[str]) -> int:
     if acc[1] == 'b':
         field_bits |= FLAG_BREAK
 
-    # mischelleneous fields
+    # miscellaneous fields
 
     if misc[0] == 'f':
         field_bits |= FLAG_ABILITY
@@ -244,7 +226,6 @@ def parse_framebulks(lines: List[Tuple[int, str]]) -> bytes:
 
     fb_bytes = b''
 
-    # reeeeeeeeeeeeeeeeeeeeeeeeeeegex
     # https://stackoverflow.com/questions/12643009/regular-expression-for-floating-point-numbers
     playspeed_re = define_field(
         KW_PLAYSPEED,
