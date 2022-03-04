@@ -76,14 +76,21 @@ IPC::~IPC() {
 
 void IPC::try_accept() {
 
-	// since the socket is non-blocking, this just polls to see if we have any connections
-	SOCKET client_socket = accept(listen_socket, nullptr, nullptr);
 	if (client_socket == INVALID_SOCKET) {
-		// do we not have any connections or is this an actual error?
-		if (WSAGetLastError() != WSAEWOULDBLOCK)
-			QueueExit("IPC: accept() failed");
-		return;
+		cl_sock_hold_count = 0;
+		// since the socket is non-blocking, this just polls to see if we have any connections
+		client_socket = accept(listen_socket, nullptr, nullptr);
+		if (client_socket == INVALID_SOCKET) {
+			// do we not have any connections or is this an actual error?
+			if (WSAGetLastError() != WSAEWOULDBLOCK)
+				QueueExit("IPC: accept() failed");
+			return;
+		}
 	}
+
+	// Poll if we have data to read. We could set an arbitrary timeout, but I want to be
+	// slightly fancy and not block the main engine loop. So instead we just keep the same
+	// connection around for a couple ticks and see if we can read from it then.
 
 	FD_SET read_set = {};
 	FD_ZERO(&read_set);
@@ -97,7 +104,11 @@ void IPC::try_accept() {
 	}
 
 	if (ret == 0) {
-		closesocket(client_socket); // no data
+		// no data now, should we check again next tick?
+		if (++cl_sock_hold_count > MAX_CL_SOCK_HOLD_COUNT) {
+			closesocket(client_socket);
+			client_socket = INVALID_SOCKET;
+		}
 		return;
 	}
 
@@ -106,6 +117,7 @@ void IPC::try_accept() {
 	uint32_t size = 0;
 	if (recv(client_socket, (char*)&size, 4, 0) != 4 || size == 0) {
 		closesocket(client_socket);
+		client_socket = INVALID_SOCKET;
 		QueueExit("IPC: Could not deduce message size & message type");
 		return;
 	}
@@ -113,6 +125,7 @@ void IPC::try_accept() {
 	char* buf = new char[size];
 	if (recv(client_socket, buf, size, 0) != size) {
 		closesocket(client_socket);
+		client_socket = INVALID_SOCKET;
 		QueueExit("IPC: bad message format");
 		return;
 	}
@@ -121,6 +134,7 @@ void IPC::try_accept() {
 	process_msg(buf + 1, (size_t)size - 1, type);
 	delete[] buf;
 	closesocket(client_socket);
+	client_socket = INVALID_SOCKET;
 }
 
 void IPC::process_msg(const char* buf, size_t size, MessageType type) {
