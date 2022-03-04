@@ -117,7 +117,6 @@ namespace hooks {
 	// called from asm if we don't want to exit
 	extern "C" float DETOUR_MainLoop__getLimitedDt_Func(MainLoop* thisptr) {
 		g_pInfo->ipc.try_accept();
-		uint64_t cur_time = GetTickCount64();
 		float dt;
 		if (g_pInfo->script_mgr.running_script()) {
 			/*
@@ -140,7 +139,7 @@ namespace hooks {
 				target_frametime_ms = int(dt / play_speed * 1000);
 				g_pInfo->script_mgr.tick_signal();
 			}
-			int sleep_time_ms = target_frametime_ms - int(cur_time - prev_time);
+			int sleep_time_ms = target_frametime_ms - int(GetTickCount64() - prev_time);
 			if (play_speed >= 0 && sleep_time_ms > 0)
 				Sleep(sleep_time_ms);
 		} else {

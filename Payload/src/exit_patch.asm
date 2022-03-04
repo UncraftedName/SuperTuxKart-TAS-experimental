@@ -1,27 +1,34 @@
 ; http://lallouslab.net/2016/01/11/introduction-to-writing-x64-assembly-in-visual-studio/
 ;
-; Here's the deal: we want to provide functionality to unload the dll from the game via a message
-; from  IPC.  To do this, we must unhook all hooks with MH_Uninitialize(). The problem is that if
-; we call that while a game thread is in a detour, that will cause a crash. It is not possible to
-; use  a  mutex  (or  any other synthronization feature) to know when there are no threads in the
-; detours, since that would require us sending a signal AFTER a detour (i.e. in game code - which
-; we  can't  edit  aside  from adding another detour, which of course doesn't solve the problem).
+; Alright Bobby, have a seat. Here's the deal: unloading the dll is rather tricky. We must unhook
+; all  hooks with MH_Uninitialize(), and obviously unload ourself. Assumming that we only have to
+; deal  with  only  one  game thread (thank god), how do we ensure it doesn't get stuck somewhere
+; where it shouldn't be (e.g. MinHook's trampolines) when we unhook everything? Because if it is,
+; the  game  will crash. We can't use a mutex (or any other synchronization primitives) to send a
+; signal from the game thread that it's no longer in a detour, because that would require sending
+; a  signal  from  outside the detour in game code which we can't edit (aside from adding another
+; detour, which of course doesn't solve the problem).
 ;
-; The solution is to exit using the game's main thread. DETOUR_MainLoop__getLimitedDt gets called
-; every  engine loop. If the exit flag is not set then we'll just jump to the C++ implementation.
-; Otherwise, we do the following:
+; The  solution  that a good fellow named mike came up with is to unhook everything from the game
+; thread  and  have  it call FreeLibrary itself. Then unhooking is not a problem, (since the game
+; thread  is  in  perfectly static code) but calling FreeLibrary is a bit tricky from the payload
+; since  a call would return to this dll, which will of course would be unloaded. That's why this
+; needs to be written in good ol' asm. Here's what the function below does:
 ;
-; 1) Call PreExitCleanup() - this is where we put MH_Uninitialize() and other cleanup stuff.
+; 1) If the exit flag is not set, jump to the C++ implementation of the detour.
 ;
-; 2) Set the "return" value of getLimitedDt to 0. This value is returned in the xmm0 register, we
-;    which can (hopefully) rely on to not get clobbered by the FreeLibrary call.
+; 2) Call PreExitCleanup() - this is where we put MH_Uninitialize() and other cleanup stuff.
 ;
-; 3) Get our module handle as a param to FreeLibrary.
+; 3) Set  the  "return" value of getLimitedDt to 0 (this is easy and just means physics won't run
+;    for  a  tick). This value is returned in the xmm0 register, which we can (hopefully) rely on
+;    to not get clobbered by the FreeLibrary call.
 ;
-; 4) Destroy  our  stack  frame  and  jump  to  FreeLibrary. This makes FreeLibrary return to the
-;    orignal  caller  of  getLimitedDt  in the game code. Even though FreeLibrary returns a bool,
+; 4) Get our module handle as a param to FreeLibrary.
+;
+; 5) Destroy  our  stack  frame  and  jump  to  FreeLibrary. This makes FreeLibrary return to the
+;    original  caller  of  getLimitedDt in the game code. Even though FreeLibrary returns a bool,
 ;    it'll put that in rax. We can only hope that it never uses the xmm0 register. If it does, we
-;    should hook a function that returns void (or a unless bool) instead.
+;    should hook a function that returns void (or a useless bool) instead.
 
 .code
 

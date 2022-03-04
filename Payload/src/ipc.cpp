@@ -88,7 +88,7 @@ void IPC::try_accept() {
 	FD_SET read_set = {};
 	FD_ZERO(&read_set);
 	FD_SET(client_socket, &read_set);
-	const timeval tval = {0, 10};
+	const timeval tval = {0, 0};
 
 	int ret;
 	if ((ret = select(0, &read_set, nullptr, nullptr, &tval)) == SOCKET_ERROR) {
