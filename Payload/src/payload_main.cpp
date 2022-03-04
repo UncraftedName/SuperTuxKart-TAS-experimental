@@ -3,35 +3,56 @@
 #include "./ipc.h"
 
 
-GlobalInfo* g_Info;
+GlobalInfo* g_pInfo;
+const char* g_szExitReason = nullptr; // if set, we'll display this in a message box as we're about to unload ourself
 
 
-__declspec(noreturn) void Exit(DWORD exitCode, const wchar_t* reason) {
+// stuff used in asm
+extern "C" {
+	bool g_bQueueExit = false; // we should exit on the next engine loop
 
-	// SPIIIIIIIIIIIIIIIIIIIIIIIN
-	while (g_Info->detour_thread_count.load() > 0) {
-		if (g_Info->script_mgr.running_script())
-			g_Info->script_mgr.stop_script();
-		Sleep(1);
+
+	HMODULE GetSelfModuleHandle() {
+		return g_pInfo->hModule;
 	}
 
-	MH_Uninitialize(); // this should unhook everything, pray that game threads are not in detours
-	if (reason)
-		MessageBox(0, reason, L"", MB_OK);
-	FreeLibraryAndExitThread(g_Info->hModule, exitCode);
+
+	// Called from asm when we want to unload this dll - right before FreeLibrary.
+	// IPC cleanup is handled in its destructor in DllMain.
+	void PreExitCleanup() {
+		g_pInfo->script_mgr.stop_script(); // must be called before we unhook so we can clear keys
+		MH_Uninitialize();
+		if (g_szExitReason)
+			MessageBoxA(0, g_szExitReason, nullptr, MB_OK);
+	}
 }
 
 
-__declspec(noreturn) void __stdcall Main(void* _) {
+void QueueExit(const char* reason) {
+	g_bQueueExit = true;
+	g_szExitReason = reason;
+}
 
-	if (!utils::GetModuleInfo(L"supertuxkart.exe", nullptr, &g_mBase, nullptr))
-		Exit(1, L"failed to get module info for main exe");
-	if (hooks::HookAll() != MH_OK)
-		Exit(1, L"Failed to hook one or more functions");
 
-	g_Info->ipc.accept_loop();
+void __stdcall Main(void* _) {
 
-	Exit(1, L"IPC accept loop exited");
+	if (!GetModuleInfo(L"supertuxkart.exe", nullptr, &g_mBase, nullptr)) {
+		MessageBoxA(0, "Failed to get module info for supertuxkart.exe", nullptr, MB_OK);
+		FreeLibraryAndExitThread(g_pInfo->hModule, 1);
+	}
+
+	const char* ipcFailReason = nullptr;
+	g_pInfo->ipc.init(ipcFailReason);
+	if (ipcFailReason) {
+		MessageBoxA(0, ipcFailReason, nullptr, MB_OK);
+		FreeLibraryAndExitThread(g_pInfo->hModule, 1);
+	}
+
+	if (hooks::HookAll() != MH_OK) {
+		MessageBoxA(0, "Failed to hook one or more functions", nullptr, MB_OK);
+		MH_Uninitialize();
+		FreeLibraryAndExitThread(g_pInfo->hModule, 1);
+	}
 }
 
 
@@ -40,12 +61,13 @@ __declspec(noreturn) void __stdcall Main(void* _) {
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved) {
 	switch (fdwReason) {
 		case DLL_PROCESS_ATTACH:
-			g_Info = new GlobalInfo(hModule);
+			g_pInfo = new GlobalInfo(hModule);
 			DisableThreadLibraryCalls(hModule);
 			CreateThread(0, 0, (LPTHREAD_START_ROUTINE)Main, 0, 0, 0);
 			break;
 		case DLL_PROCESS_DETACH:
-			delete g_Info;
+			delete g_pInfo;
+			g_pInfo = nullptr;
 			break;
 		default:
 			break;

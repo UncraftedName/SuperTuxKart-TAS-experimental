@@ -84,4 +84,9 @@
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <MASM Include="src\exit_patch.asm">
+      <Filter>src</Filter>
+    </MASM>
+  </ItemGroup>
 </Project>

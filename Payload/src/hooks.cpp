@@ -5,17 +5,6 @@
 void* g_mBase = nullptr;
 
 
-// create a struct that decrements the detour thread count once it goes out of scope
-#define DETOUR_BEGIN() \
-	struct { \
-		struct Inner { \
-			 Inner() {g_Info->detour_thread_count.fetch_add(1);} \
-			~Inner() {g_Info->detour_thread_count.fetch_sub(1);} \
-		} __inner; \
-	} __detour_scope;
-
-
-
 namespace hooks {
 
 	// globals
@@ -115,22 +104,21 @@ namespace hooks {
 
 
 	EventPropagation DETOUR_InputManager__input(InputManager* thisptr, SEvent& event) {
-		DETOUR_BEGIN();
 		// don't accept inputs if we're running a script
 		if (event.EventType == EET_KEY_INPUT_EVENT &&
 			event.KeyInput.Key != IRR_KEY_ESCAPE &&
-			g_Info->script_mgr.running_script()
+			g_pInfo->script_mgr.running_script()
 		) return EVENT_BLOCK_BUT_HANDLED;
 
 		return ORIG_InputManager__input(thisptr, event);
 	}
 
 
-	float DETOUR_MainLoop__getLimitedDt(MainLoop* thisptr) {
-		DETOUR_BEGIN();
-		uint64_t cur_time = GetTickCount64();
+	// called from asm if we don't want to exit
+	extern "C" float DETOUR_MainLoop__getLimitedDt_Func(MainLoop* thisptr) {
+		g_pInfo->ipc.try_accept();
 		float dt;
-		if (g_Info->script_mgr.running_script()) {
+		if (g_pInfo->script_mgr.running_script()) {
 			/*
 			* When a script is running, we want to signal the script manager when exactly
 			* one physics step has been taken, (otherwise our scripts won't be consistent).
@@ -140,7 +128,7 @@ namespace hooks {
 			* the framerate high when the playspeed is low we could probably just hook a
 			* physics step function.
 			*/
-			float play_speed = g_Info->script_mgr.get_play_speed();
+			float play_speed = g_pInfo->script_mgr.get_play_speed();
 			int target_frametime_ms;
 			if (play_speed == 0) {
 				// don't step, but cap framerate because we care about our carbon footprint
@@ -149,8 +137,9 @@ namespace hooks {
 			} else {
 				dt = 1.0f / (**stk_config).m_physics_fps;
 				target_frametime_ms = int(dt / play_speed * 1000);
-				g_Info->script_mgr.tick_signal();
+				g_pInfo->script_mgr.tick_signal();
 			}
+			uint64_t cur_time = GetTickCount64();
 			int sleep_time_ms = target_frametime_ms - int(cur_time - prev_time);
 			if (play_speed >= 0 && sleep_time_ms > 0)
 				Sleep(sleep_time_ms);
@@ -163,7 +152,7 @@ namespace hooks {
 
 
 	void DETOUR_RaceManager__exitRace(RaceManager* thisptr, bool delete_world) {
-		g_Info->script_mgr.stop_script();
+		g_pInfo->script_mgr.stop_script();
 		ORIG_RaceManager__exitRace(thisptr, delete_world);
 	}
 }
