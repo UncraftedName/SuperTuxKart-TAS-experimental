@@ -306,22 +306,52 @@ def main():
     script_bytes = parse_script(tas_script_path)
 
     # run the injector exe
-    injector_build_path = "../x64/Debug/Injector.exe"
-    injector_release_path = "./Injector.exe"
 
-    # try the release path, on failing that try the build path
-    # if neither path exists, we have to trust that the user runs
-    # the injector on their own
-    rc = 1
-    if pathlib.Path(injector_release_path).is_file():
-        rc = os.system(str(pathlib.Path(injector_release_path)))
+    inj_name = "Injector.exe"
+    pyl_name = "Payload.dll"
+
+    official_path = "./"  # official release (same dir)
+    deb_path = "../x64/Debug/"
+    rel_path = "../x64/Release/"
+
+    # official, debug, release
+    build_files: List[List[str]] = [
+        [path + name for name in (inj_name, pyl_name)]
+        for path in (official_path, deb_path, rel_path)
+    ]
+
+    official_files, deb_files, rel_files = build_files
+
+    official_exists, deb_exists, rel_exists = \
+        [all(pathlib.Path(file).is_file() for file in build) for build in build_files]
+
+    # Try official release path, on fail try the most recent build path.
+    # If neither path exists, we have to trust that the user runs
+    # the injector on their own.
+    inj_path = None
+
+    if official_exists:
+        inj_path = official_path + inj_name
     else:
-        if pathlib.Path(injector_build_path).is_file():
-            rc = os.system(str(pathlib.Path(injector_build_path)))
+        print(f"{official_path + inj_name} not found, looking for vs builds.")
+        if deb_exists and rel_exists:
+            deb_mod_time = max(os.path.getmtime(file) for file in deb_files)
+            rel_mod_time = max(os.path.getmtime(file) for file in rel_files)
+            inj_path = (deb_path if deb_mod_time > rel_mod_time else rel_path) + inj_name
+        elif deb_exists:
+            inj_path = deb_path + inj_name
+        elif rel_exists:
+            inj_path = rel_path + inj_name
+        else:
+            print(f"Can't find {inj_name}, trying to connect")
 
+    return_code = 0
+    if inj_path:
+        print(f"Running {inj_path}")
+        return_code = os.system(str(pathlib.Path(inj_path)))
     # Open Client socket and send data to Payload if the injector ran
     # successfully
-    if rc == 0:
+    if return_code == 0:
         cl_sock = ClientSocket()
         cl_sock.start()
         cl_sock.send(script_bytes, MessageType.Script)
