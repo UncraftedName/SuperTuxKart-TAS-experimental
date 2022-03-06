@@ -23,12 +23,12 @@ void ScriptManager::set_new_script(ScriptData* data) {
 void ScriptManager::stop_script() {
 	if (!has_active_script)
 		return;
-	send_framebulk_inputs(Framebulk()); // clear keys
 	delete script_data;
 	script_data = nullptr;
 	has_active_script = false;
 	play_speed = 1;
 	*hooks::g_is_no_graphics = false;
+	send_framebulk_inputs(Framebulk()); // clear keys
 }
 
 
@@ -68,6 +68,12 @@ void ScriptManager::tick_signal() {
 
 
 void ScriptManager::send_framebulk_inputs(const Framebulk& fb) {
+	// if we're running a script, don't send keypresses/releases from a 0-tick framebulk unless it's the first/last one
+	if (script_data) {
+		if (fb.num_ticks <= 0 && &fb != &script_data->framebulks.back() && &fb != &script_data->framebulks.front())
+			return;
+	}
+
 	// hard coded keys for each flag
 	const EKEY_CODE flag_keys[] = {IRR_KEY_UP, IRR_KEY_DOWN, IRR_KEY_SPACE, IRR_KEY_N, IRR_KEY_V};
 
