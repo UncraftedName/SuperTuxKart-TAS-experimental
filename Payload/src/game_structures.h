@@ -161,6 +161,7 @@ struct DeviceManager {
 struct StateManager;
 struct InputDevice;
 struct PlayerProfile;
+struct World;
 
 struct InputManager {
 	char __pad[48];

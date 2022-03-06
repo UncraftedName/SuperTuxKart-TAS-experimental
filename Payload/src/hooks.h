@@ -14,6 +14,11 @@ extern void* g_mBase;
 #define FROM_BASE(offset) ((void*)((uintptr_t)g_mBase + offset))
 
 
+// dereference object to get vtable address, get entry in vtable, call it
+#define CALL_VIRTUAL_FUNC(func_type, obj, vtable_off, ...) \
+	(*(func_type*)(*(uintptr_t*)obj + vtable_off * sizeof(func_type*)))(__VA_ARGS__)
+
+
 namespace hooks {
 
 	MH_STATUS HookAll();
@@ -26,6 +31,7 @@ namespace hooks {
 	extern StateManager** state_manager_singleton;
 	extern MainLoop** main_loop;
 	extern STKConfig** stk_config;
+	extern World** m_world;
 	extern bool* g_is_no_graphics;
 
 
@@ -70,4 +76,7 @@ namespace hooks {
 	// called once per engine loop to determine the next timestep to take, detour is partially implemented in asm
 	DECLARE_FUNC(MainLoop__getLimitedDt, float, MainLoop* thisptr);
 	extern "C" float DETOUR_MainLoop__getLimitedDt(MainLoop* thisptr);
+
+	// virtual function for World, called when reloading/restarting a world/race
+	typedef void (*_World__reset)(World* thisptr, bool restart);
 }

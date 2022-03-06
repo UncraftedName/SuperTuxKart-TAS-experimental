@@ -161,6 +161,9 @@ void IPC::process_msg(const char* buf, size_t size, MessageType type) {
 			script->difficulty = *(Difficulty*)buf;
 			buf += 4;
 
+			script->quick_reset = *(unsigned char*)buf;
+			buf += 1;
+
 			// read framebulk data
 
 			script->fill_framebulk_data(buf, size - (buf - buf_orig));

@@ -21,8 +21,9 @@ void ScriptManager::set_new_script(ScriptData* data) {
 
 
 void ScriptManager::stop_script() {
-	if (script_data)
-		send_framebulk_inputs(Framebulk()); // clear keys
+	if (!has_active_script)
+		return;
+	send_framebulk_inputs(Framebulk()); // clear keys
 	delete script_data;
 	script_data = nullptr;
 	has_active_script = false;
@@ -37,8 +38,8 @@ void ScriptManager::tick_signal() {
 		return;
 	
 	if (!map_loaded) {
-		map_loaded = true;
 		load_map();
+		map_loaded = true;
 		return;
 	}
 
@@ -107,14 +108,18 @@ void ScriptManager::load_map() {
 	*/
 	using namespace hooks;
 
-	ORIG_RaceManager__exitRace(*g_race_manager, true);
-	ORIG_DeviceManager__setAssignMode((**input_manager).m_device_manager, ASSIGN);
-	auto device = ORIG_DeviceManager__getLatestUsedDevice((**input_manager).m_device_manager);
-	auto profile = (**m_player_manager).m_current_player;
-	ORIG_StateManager__resetActivePlayers(*state_manager_singleton);
-	(**input_manager).m_device_manager->m_single_player = nullptr;
-	ORIG_StateManager__createActivePlayer(*state_manager_singleton, profile, device);
-	ORIG_RaceManager__setPlayerKart(*g_race_manager, 0, script_data->player_name.c_str());
-	(**g_race_manager).setupBasicRace(script_data->difficulty, script_data->laps);
-	ORIG_RaceManager__startSingleRace(*g_race_manager, script_data->map_name.c_str(), 1, false);
+	if (*m_world && script_data->quick_reset) {
+		CALL_VIRTUAL_FUNC(_World__reset, *m_world, 2, *m_world, true);
+	} else {
+		ORIG_RaceManager__exitRace(*g_race_manager, true);
+		ORIG_DeviceManager__setAssignMode((**input_manager).m_device_manager, ASSIGN);
+		auto device = ORIG_DeviceManager__getLatestUsedDevice((**input_manager).m_device_manager);
+		auto profile = (**m_player_manager).m_current_player;
+		ORIG_StateManager__resetActivePlayers(*state_manager_singleton);
+		(**input_manager).m_device_manager->m_single_player = nullptr;
+		ORIG_StateManager__createActivePlayer(*state_manager_singleton, profile, device);
+		ORIG_RaceManager__setPlayerKart(*g_race_manager, 0, script_data->player_name.c_str());
+		(**g_race_manager).setupBasicRace(script_data->difficulty, script_data->laps);
+		ORIG_RaceManager__startSingleRace(*g_race_manager, script_data->map_name.c_str(), 1, false);
+	}
 }

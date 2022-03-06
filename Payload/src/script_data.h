@@ -47,6 +47,8 @@ public:
 	int laps = 0;
 	Difficulty difficulty = DIFFICULTY_EASY;
 	std::vector<Framebulk> framebulks;
+	// can we restart a map without reloading?
+	bool quick_reset;
 
 	void fill_framebulk_data(const char* buf, size_t size);
 };

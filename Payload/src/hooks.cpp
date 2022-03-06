@@ -15,6 +15,7 @@ namespace hooks {
 	StateManager** state_manager_singleton = nullptr;
 	MainLoop** main_loop = nullptr;
 	STKConfig** stk_config = nullptr;
+	World** m_world = nullptr;
 	bool* g_is_no_graphics = nullptr;
 
 	// pointers to game functions
@@ -92,6 +93,7 @@ namespace hooks {
 		state_manager_singleton =  (StateManager**) FROM_BASE(0xca3400);
 		main_loop               =      (MainLoop**) FROM_BASE(0xc83d80);
 		stk_config              =     (STKConfig**) FROM_BASE(0xc67720);
+		m_world                 =         (World**) FROM_BASE(0xc87100);
 		g_is_no_graphics        =           (bool*) FROM_BASE(0xc72498);
 
 

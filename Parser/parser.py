@@ -26,11 +26,12 @@ FLAG_SKID      = 1 << 4
 FLAG_SET_SPEED = 1 << 5
 
 # header keywords
-KW_MAP        = 'map'
-KW_KART_NAME  = 'kart_name'
-KW_NUM_LAPS   = 'num_laps'
-KW_DIFFICULTY = 'difficulty'
-KW_NUM_AI     = 'num_ai_karts'
+KW_MAP         = 'map'
+KW_KART_NAME   = 'kart_name'
+KW_NUM_LAPS    = 'num_laps'
+KW_DIFFICULTY  = 'difficulty'
+KW_NUM_AI      = 'num_ai_karts'
+KW_QUICK_RESET = 'quick_reset'
 
 # maps that can be loaded
 MAP_NAMES = {
@@ -91,7 +92,7 @@ def define_field(key: str, pattern: str = r'[^\s\'"]+') -> str:
     is the regex for the value. The value may optionally be single or double quoted.
     E.g. key='map', pattern='\w+' will match "map 'e'" and groupdict()['map']='e'
     """
-    return rf"""^{key}\s+=?\s*(?:"(?={pattern}")|'(?={pattern}'))?(?P<{key}>{pattern})['"]?$"""
+    return rf"""^{key}(?:\s+|\s*[:=]\s*)(?:"(?={pattern}")|'(?={pattern}'))?(?P<{key}>{pattern})['"]?$"""
 
 
 def encode_framebulk(field_bits: int, turn_ang: float, num_ticks: int) -> bytes:
@@ -145,6 +146,7 @@ def parse_header(lines: List[Tuple[int, str]]) -> bytes:
         define_field(KW_NUM_LAPS),
         define_field(KW_DIFFICULTY),
         define_field(KW_NUM_AI),
+        define_field(KW_QUICK_RESET),
     ))
 
     fields_dict = {}
@@ -194,10 +196,10 @@ def parse_header(lines: List[Tuple[int, str]]) -> bytes:
 
     # num_ai is currently unused but still sent, give it a default value of 0
     if KW_NUM_AI not in fields_dict:
-        fields_dict[KW_NUM_AI] = 0
-        if not validate_field(KW_NUM_AI, lambda s: int(s), lambda n: n >= 0):
-            print(f"Invalid value '{fields_dict[KW_NUM_AI]}' for key '{KW_NUM_AI}', should be at least 0.")
-            exit(1)
+        fields_dict[KW_NUM_AI] = '0'
+    if not validate_field(KW_NUM_AI, lambda s: int(s), lambda n: n >= 0):
+        print(f"Invalid value '{fields_dict[KW_NUM_AI]}' for key '{KW_NUM_AI}', should be at least 0.")
+        exit(1)
 
     if fields_dict[KW_MAP] not in MAP_NAMES:
         print(f"Invalid map name: '{fields_dict[KW_MAP]}'. Here's a list of all valid maps:")
@@ -209,11 +211,28 @@ def parse_header(lines: List[Tuple[int, str]]) -> bytes:
         print('\n'.join(sorted(KART_NAMES)))
         exit(1)
 
-    # map + kart_name + int(num_ai) + int(num_laps) + int(difficulty)
+    valid_bools = {
+        **{f: False for f in ('f', 'false', '0')},
+        **{t: True for t in ('t', 'true', '1')}
+    }
+
+    # quick_reset is optional, default value is false
+    if KW_QUICK_RESET not in fields_dict:
+        fields_dict[KW_QUICK_RESET] = 'false'
+    if not validate_field(KW_QUICK_RESET, lambda s: valid_bools[s], lambda b: True):
+        print(f"Invalid value '{fields_dict[KW_QUICK_RESET]}' for key '{KW_QUICK_RESET}', expected boolean.")
+        exit(1)
+
+    # map + kart_name + int(num_ai) + int(num_laps) + int(difficulty) + byte(quick_reset)
     return (
         fields_dict[KW_MAP].encode('utf-8') + b'\x00' +
         fields_dict[KW_KART_NAME].encode('utf-8') + b'\x00' +
-        struct.pack('3i', *(fields_dict[x] for x in (KW_NUM_AI, KW_NUM_LAPS, KW_DIFFICULTY)))
+        struct.pack('3ic',
+            fields_dict[KW_NUM_AI],
+            fields_dict[KW_NUM_LAPS],
+            fields_dict[KW_DIFFICULTY],
+            b'\x01' if fields_dict[KW_QUICK_RESET] else b'\x00'
+        )
     )
 
 
