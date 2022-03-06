@@ -115,8 +115,21 @@ void ScriptManager::load_map() {
 	*/
 	using namespace hooks;
 
+	// can't quick reset if the world isn't loaded yet
 	if (*m_world && script_data->quick_reset) {
 		CALL_VIRTUAL_FUNC(_World__reset, *m_world, 2, *m_world, true);
+		/*
+		* When loading a map normally, there's 1 tick that gets triggered during the world load.
+		* To make scripts consistent when using quick reload, 1 tick is subtracted from the first
+		* framebulk with at least 1 tick. So technically, if there's any tricks that require inputs
+		* during the map load, they won't work with quick reload.
+		*/
+		for (auto it = script_data->framebulks.begin(); it != script_data->framebulks.end(); it++) {
+			if (it->num_ticks > 0) {
+				it->num_ticks -= 1;
+				break;
+			}
+		}
 	} else {
 		ORIG_RaceManager__exitRace(*g_race_manager, true);
 		ORIG_DeviceManager__setAssignMode((**input_manager).m_device_manager, ASSIGN);
