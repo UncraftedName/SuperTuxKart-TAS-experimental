@@ -74,15 +74,16 @@ void ScriptManager::send_framebulk_inputs(const Framebulk& fb) {
 			return;
 	}
 
+	// TODO: send joystick inputs instead of just hard left/right
+	// send direction inputs BEFORE skid flag!
+	send_keyboard_input(IRR_KEY_RIGHT, fb.turn_angle > 0);
+	send_keyboard_input(IRR_KEY_LEFT, fb.turn_angle < 0);
+
 	// hard coded keys for each flag
 	const EKEY_CODE flag_keys[] = {IRR_KEY_UP, IRR_KEY_DOWN, IRR_KEY_SPACE, IRR_KEY_N, IRR_KEY_V};
 
 	for (int i = 0; i < Framebulk::NUM_BUTTON_FLAGS; i++)
 		send_keyboard_input(flag_keys[i], fb.flags & (1 << i));
-
-	// TODO: send joystick inputs instead of just hard left/right
-	send_keyboard_input(IRR_KEY_RIGHT, fb.turn_angle > 0);
-	send_keyboard_input(IRR_KEY_LEFT, fb.turn_angle < 0);
 }
 
 
