@@ -77,7 +77,7 @@ bool isModuleLoaded(HANDLE hProc, const wchar_t* modName) {
 }
 
 
-bool injectDLL(const wchar_t* processName, const char* dllPath, const wchar_t* baseDllName) {
+bool injectDLL(const wchar_t* processName, const wchar_t* dllPath, const wchar_t* dllName) {
 
 	DWORD procID = getProcessId(processName);
 	if (!procID) {
@@ -91,25 +91,25 @@ bool injectDLL(const wchar_t* processName, const char* dllPath, const wchar_t* b
 		return false;
 	}
 
-	if (isModuleLoaded(hProc, baseDllName)) {
+	if (isModuleLoaded(hProc, dllName)) {
 		// premature exit
 		std::cout << "DLL already loaded\n";
 		return true;
 	}
 
-	void* loc = VirtualAllocEx(hProc, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	void* loc = VirtualAllocEx(hProc, 0, MAX_PATH * sizeof(wchar_t), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	if (!loc) {
 		std::cout << "Could not allocate memory in target process, reason: " << GetLastErrorAsStr() << "\n";
 		return false;
 	}
 
-	if (!WriteProcessMemory(hProc, loc, dllPath, strlen(dllPath) + 1, 0)) {
+	if (!WriteProcessMemory(hProc, loc, dllPath, wcslen(dllPath) * sizeof(wchar_t) + 1, 0)) {
 		// doesn't seem to return errors if the dll path is wrong...
 		std::cout << "Could not write to target process memory, reason: " << GetLastErrorAsStr() << "\n";
 		return false;
 	}
 
-	HANDLE hThread = CreateRemoteThread(hProc, 0, 0, (LPTHREAD_START_ROUTINE)LoadLibraryA, loc, 0, 0);
+	HANDLE hThread = CreateRemoteThread(hProc, 0, 0, (LPTHREAD_START_ROUTINE)LoadLibraryW, loc, 0, 0);
 	if (!hThread) {
 		// this will give access denied if the architecture doesn't match (e.g. x64 vs x86)
 		std::cout << "Could not create remote thread, reason: " << GetLastErrorAsStr() << "\n";
@@ -122,34 +122,32 @@ bool injectDLL(const wchar_t* processName, const char* dllPath, const wchar_t* b
 }
 
 
-bool doesFileExist(const char* filePath) {
-	struct stat buffer;
-	return (stat(filePath, &buffer) == 0);
+bool doesFileExist(const wchar_t* filePath) {
+	struct _stat64 buffer;
+	return (_wstat64(filePath, &buffer) == 0);
 }
 
-void getDllPath(const wchar_t* payloadName, wchar_t* wdllPath /* out */) {
+
+// gets dll path in current dir
+void getDllPath(const wchar_t* dllName, wchar_t* dllPath /* out */) {
 	wchar_t buffer[MAX_PATH];
 	// Stores in buffer the current exe path (...\Injector.exe)
-	GetModuleFileName(NULL, buffer, MAX_PATH);
+	GetModuleFileNameW(NULL, buffer, MAX_PATH);
 	std::wstring path = buffer;
 	// Replaces "Injector.exe" in path with payloadName and copy to wdllPath
-	path = path.substr(0, path.find_last_of(L"\\") + 1).append(payloadName);
-	path.copy(wdllPath, MAX_PATH);
-	wdllPath[path.length()] = L'\0';
+	path = path.substr(0, path.find_last_of(L"\\") + 1).append(dllName);
+	path.copy(dllPath, MAX_PATH);
+	dllPath[path.length()] = L'\0';
 }
+
 
 int main(void) {
 
 	const wchar_t* processName = L"supertuxkart.exe";
 	const wchar_t* payloadName = L"Payload.dll";
 
-	// Get full path of dll as char array, most functions need wchars
-	// but WriteProcessMemory needs chars
-	wchar_t wdllPath[MAX_PATH];
-	char dllPath[MAX_PATH];
-	getDllPath(payloadName, wdllPath);
-	size_t ret;
-	wcstombs_s(&ret, dllPath, wdllPath, MAX_PATH);
+	wchar_t dllPath[MAX_PATH];
+	getDllPath(payloadName, dllPath);
 
 	if (!doesFileExist(dllPath)) {
 		std::cout << "Could not find dll file.\n";
