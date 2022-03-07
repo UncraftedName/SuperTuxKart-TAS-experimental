@@ -5,11 +5,11 @@ difficulty  = 3
 quick_reset = true
 
 // ab|fns|angle|ticks|
-frames
+framebulks
 
 playspeed -1
 
---|---|0|484|
+--|---|0|484| // wait for boost
 a-|---|1|130|
 a-|---|0|90|
 a-|--s|-1|1|

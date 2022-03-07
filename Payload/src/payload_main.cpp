@@ -20,7 +20,7 @@ extern "C" {
 	// Called from asm when we want to unload this dll - right before FreeLibrary.
 	// IPC cleanup is handled in its destructor in DllMain.
 	void PreExitCleanup() {
-		g_pInfo->script_mgr.stop_script(); // must be called before we unhook so we can clear keys
+		g_pInfo->script_mgr.stopScript(); // must be called before we unhook so we can clear keys
 		MH_Uninitialize();
 		if (g_szExitReason)
 			MessageBoxA(0, g_szExitReason, nullptr, MB_OK);
@@ -48,7 +48,7 @@ void __stdcall Main(void* _) {
 		FreeLibraryAndExitThread(g_pInfo->hModule, 1);
 	}
 
-	if (hooks::HookAll() != MH_OK) {
+	if (hooks::hookAll() != MH_OK) {
 		MessageBoxA(0, "Failed to hook one or more functions", nullptr, MB_OK);
 		MH_Uninitialize();
 		FreeLibraryAndExitThread(g_pInfo->hModule, 1);

@@ -50,7 +50,7 @@ namespace hooks {
 	*                    This parameter can be NULL.
 	*/
 	template <typename T>
-	inline MH_STATUS QueueFunctionHook(LPVOID pTarget, LPVOID pDetour, T*& pOriginal) {
+	inline MH_STATUS queueFunctionHook(LPVOID pTarget, LPVOID pDetour, T*& pOriginal) {
 		MH_STATUS stat = MH_CreateHook(pTarget, pDetour, reinterpret_cast<LPVOID*>(&pOriginal));
 		if (stat != MH_OK)
 			return stat;
@@ -58,10 +58,10 @@ namespace hooks {
 	}
 
 
-	MH_STATUS HookAll() {
+	MH_STATUS hookAll() {
 
 		#define MH_FAILED(try_func) ((stat = (try_func)) != MH_OK)
-		#define MH_FAILED_HOOK(name, offset) MH_FAILED(QueueFunctionHook(FROM_BASE(offset), &DETOUR_##name, ORIG_##name))
+		#define MH_FAILED_HOOK(name, offset) MH_FAILED(queueFunctionHook(FROM_BASE(offset), &DETOUR_##name, ORIG_##name))
 
 
 		// hook functions
@@ -109,7 +109,7 @@ namespace hooks {
 		// don't accept inputs if we're running a script
 		if (event.EventType == EET_KEY_INPUT_EVENT &&
 			event.KeyInput.Key != IRR_KEY_ESCAPE &&
-			g_pInfo->script_mgr.running_script()
+			g_pInfo->script_mgr.runningScript()
 		) return EVENT_BLOCK_BUT_HANDLED;
 
 		return ORIG_InputManager__input(thisptr, event);
@@ -120,7 +120,7 @@ namespace hooks {
 	extern "C" float DETOUR_MainLoop__getLimitedDt_Func(MainLoop* thisptr) {
 		g_pInfo->ipc.try_accept();
 		float dt;
-		if (g_pInfo->script_mgr.running_script()) {
+		if (g_pInfo->script_mgr.runningScript()) {
 			/*
 			* When a script is running, we want to signal the script manager when exactly
 			* one physics step has been taken, (otherwise our scripts won't be consistent).
@@ -130,7 +130,7 @@ namespace hooks {
 			* the framerate high when the playspeed is low we could probably just hook a
 			* physics step function.
 			*/
-			float play_speed = g_pInfo->script_mgr.get_play_speed();
+			float play_speed = g_pInfo->script_mgr.getPlaySpeed();
 			int target_frametime_ms;
 			if (play_speed == 0) {
 				// don't step, but cap framerate because we care about our carbon footprint
@@ -139,7 +139,7 @@ namespace hooks {
 			} else {
 				dt = 1.0f / (**stk_config).m_physics_fps;
 				target_frametime_ms = int(dt / play_speed * 1000);
-				g_pInfo->script_mgr.tick_signal();
+				g_pInfo->script_mgr.tickSignal();
 			}
 			uint64_t cur_time = GetTickCount64();
 			int sleep_time_ms = target_frametime_ms - int(cur_time - prev_time);
@@ -154,7 +154,7 @@ namespace hooks {
 
 
 	void DETOUR_RaceManager__exitRace(RaceManager* thisptr, bool delete_world) {
-		g_pInfo->script_mgr.stop_script();
+		g_pInfo->script_mgr.stopScript();
 		ORIG_RaceManager__exitRace(thisptr, delete_world);
 	}
 }

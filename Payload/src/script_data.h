@@ -50,7 +50,7 @@ public:
 	// can we restart a map without reloading?
 	bool quick_reset;
 
-	void fill_framebulk_data(const char* buf, size_t size);
+	void fillFramebulkData(const char* buf, size_t size);
 };
 
 
@@ -72,11 +72,11 @@ private:
 	float play_speed = 1;
 
 	// loads the map in script data
-	void load_map();
+	void loadMap();
 	// convert framebulk to key/controller inputs
-	void send_framebulk_inputs(const Framebulk&);
+	void sendFramebulkInputs(const Framebulk&);
 	// only handles key codes
-	void send_keyboard_input(EKEY_CODE key, bool key_pressed);
+	void sendKeyboardInput(EKEY_CODE key, bool key_pressed);
 
 public:
 
@@ -84,15 +84,15 @@ public:
 		delete script_data;
 	}
 
-	bool running_script() {return has_active_script;}
+	bool runningScript() {return has_active_script;}
 
-	float get_play_speed() {return play_speed;}
+	float getPlaySpeed() {return play_speed;}
 
 	// we've just parsed a new script via IPC, stops the existing script
-	void set_new_script(ScriptData* data);
+	void setNewScript(ScriptData* data);
 
-	void stop_script();
+	void stopScript();
 
 	// signal that we're on a new game tick
-	void tick_signal();
+	void tickSignal();
 };

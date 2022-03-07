@@ -3,8 +3,9 @@ kart_name    "tux"
 num_laps     1
 difficulty   2
 
-frames // ab|fns|angle|ticks|
+framebulks // ab|fns|angle|ticks|
 
+playspeed 3
 --|---|0|600| // wait for match start
 
 // first sharp loop

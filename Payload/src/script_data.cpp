@@ -1,7 +1,7 @@
 #include "script_data.h"
 #include "hooks.h"
 
-void ScriptData::fill_framebulk_data(const char* buf, size_t size) {
+void ScriptData::fillFramebulkData(const char* buf, size_t size) {
 	framebulks.clear();
 	framebulks.push_back(Framebulk()); // to unpress all keys before & after running
 	for (size_t off = 0; size - off >= Framebulk::FB_SIZE_BYTES; off += Framebulk::FB_SIZE_BYTES)
@@ -10,8 +10,8 @@ void ScriptData::fill_framebulk_data(const char* buf, size_t size) {
 }
 
 
-void ScriptManager::set_new_script(ScriptData* data) {
-	stop_script();
+void ScriptManager::setNewScript(ScriptData* data) {
+	stopScript();
 	script_data = data;
 	has_active_script = true;
 	map_loaded = false;
@@ -20,7 +20,7 @@ void ScriptManager::set_new_script(ScriptData* data) {
 }
 
 
-void ScriptManager::stop_script() {
+void ScriptManager::stopScript() {
 	if (!has_active_script)
 		return;
 	delete script_data;
@@ -28,24 +28,24 @@ void ScriptManager::stop_script() {
 	has_active_script = false;
 	play_speed = 1;
 	*hooks::g_is_no_graphics = false;
-	send_framebulk_inputs(Framebulk()); // clear keys
+	sendFramebulkInputs(Framebulk()); // clear keys
 }
 
 
-void ScriptManager::tick_signal() {
+void ScriptManager::tickSignal() {
 	
 	if (!has_active_script || !script_data)
 		return;
 	
 	if (!map_loaded) {
-		load_map();
+		loadMap();
 		map_loaded = true;
 		return;
 	}
 
 	for (;;) {
 		Framebulk& fb = script_data->framebulks[fb_idx];
-		send_framebulk_inputs(fb);
+		sendFramebulkInputs(fb);
 
 		if (fb.set_speed) {
 			play_speed = fb.new_play_speed;
@@ -56,7 +56,7 @@ void ScriptManager::tick_signal() {
 		if (++fb_tick >= fb.num_ticks) {
 			fb_tick = 0;
 			if (++fb_idx >= script_data->framebulks.size()) {
-				stop_script(); // we're done
+				stopScript(); // we're done
 				break;
 			}
 		}
@@ -67,7 +67,7 @@ void ScriptManager::tick_signal() {
 }
 
 
-void ScriptManager::send_framebulk_inputs(const Framebulk& fb) {
+void ScriptManager::sendFramebulkInputs(const Framebulk& fb) {
 	// if we're running a script, don't send keypresses/releases from a 0-tick framebulk unless it's the first/last one
 	if (script_data) {
 		if (fb.num_ticks <= 0 && &fb != &script_data->framebulks.back() && &fb != &script_data->framebulks.front())
@@ -76,23 +76,24 @@ void ScriptManager::send_framebulk_inputs(const Framebulk& fb) {
 
 	// TODO: send joystick inputs instead of just hard left/right
 	// send direction inputs BEFORE skid flag!
-	send_keyboard_input(IRR_KEY_RIGHT, fb.turn_angle > 0);
-	send_keyboard_input(IRR_KEY_LEFT, fb.turn_angle < 0);
+	sendKeyboardInput(IRR_KEY_RIGHT, fb.turn_angle > 0);
+	sendKeyboardInput(IRR_KEY_LEFT, fb.turn_angle < 0);
 
 	// hard coded keys for each flag
 	const EKEY_CODE flag_keys[] = {IRR_KEY_UP, IRR_KEY_DOWN, IRR_KEY_SPACE, IRR_KEY_N, IRR_KEY_V};
 
 	for (int i = 0; i < Framebulk::NUM_BUTTON_FLAGS; i++)
-		send_keyboard_input(flag_keys[i], fb.flags & (1 << i));
+		sendKeyboardInput(flag_keys[i], fb.flags & (1 << i));
 }
 
 
-void ScriptManager::send_keyboard_input(EKEY_CODE key, bool key_pressed) {
+void ScriptManager::sendKeyboardInput(EKEY_CODE key, bool key_pressed) {
+	// Fills an SEvent struct and calls InputManager::input in game code
 	SEvent e = {};
 	e.EventType = EET_KEY_INPUT_EVENT;
-	e.KeyInput.Char = U'\0'; // might need to set this for actual keys
+	e.KeyInput.Char = U'\0';
 	e.KeyInput.Key = key;
-	e.KeyInput.SystemKeyCode = 0; // hope this doesn't matter
+	e.KeyInput.SystemKeyCode = 0;
 	e.KeyInput.PressedDown = key_pressed;
 	e.KeyInput.Shift = false;
 	e.KeyInput.Control = false;
@@ -100,7 +101,7 @@ void ScriptManager::send_keyboard_input(EKEY_CODE key, bool key_pressed) {
 }
 
 
-void ScriptManager::load_map() {
+void ScriptManager::loadMap() {
 	/*
 	* This is roughly equivalent to the following game code:
 	*

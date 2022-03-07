@@ -7,7 +7,7 @@
 #include "minhook\include\MinHook.h"
 #include "game_structures.h"
 
-// pointer to start of supertuxkart.exe, not initialized until HookAll()
+// pointer to start of supertuxkart.exe, not initialized until hookAll()
 extern void* g_mBase;
 
 
@@ -21,7 +21,7 @@ extern void* g_mBase;
 
 namespace hooks {
 
-	MH_STATUS HookAll();
+	MH_STATUS hookAll();
 
 
 	// globals

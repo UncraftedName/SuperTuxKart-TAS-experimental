@@ -83,8 +83,8 @@ KART_NAMES = {
 }
 
 # framebulk keywords
-KW_FRAMES    = 'frames'
-KW_PLAYSPEED = 'playspeed'
+KW_HEADER_END = 'framebulks'
+KW_PLAYSPEED  = 'playspeed'
 
 
 def define_field(key: str, pattern: str = r'[^\s\'"]+') -> str:
@@ -96,7 +96,8 @@ def define_field(key: str, pattern: str = r'[^\s\'"]+') -> str:
 
 
 def encode_framebulk(field_bits: int, turn_ang: float, num_ticks: int) -> bytes:
-    """
+    """Encodes a line from the "framebulks" section into an instruction for game inputs
+    to be done for a given number of ticks.
     """
     return struct.pack('hhf', field_bits, num_ticks, turn_ang)
 
@@ -290,9 +291,9 @@ def parse_script(tas_file: str) -> bytes:
 
     # find first line with 'frames' on it
     try:
-        header_end_idx = next(i for i, line in enumerate(lines) if line[1] == KW_FRAMES)
+        header_end_idx = next(i for i, line in enumerate(lines) if line[1] == KW_HEADER_END)
     except StopIteration:
-        print(f"No '{KW_FRAMES}' keyword found, not sure where header ends.")
+        print(f"No '{KW_HEADER_END}' keyword found, not sure where header ends.")
         exit(1)
 
     return parse_header(lines[:header_end_idx]) + parse_framebulks(lines[header_end_idx+1:])
@@ -368,8 +369,7 @@ def main():
     if inj_path:
         print(f"Running {inj_path}")
         return_code = os.system(str(pathlib.Path(inj_path)))
-    # Open Client socket and send data to Payload if the injector ran
-    # successfully
+    # Open Client socket and send data to Payload if the injector ran successfully
     if return_code == 0:
         cl_sock = ClientSocket()
         cl_sock.start()

@@ -166,8 +166,8 @@ void IPC::process_msg(const char* buf, size_t size, MessageType type) {
 
 			// read framebulk data
 
-			script->fill_framebulk_data(buf, size - (buf - buf_orig));
-			g_pInfo->script_mgr.set_new_script(script);
+			script->fillFramebulkData(buf, size - (buf - buf_orig));
+			g_pInfo->script_mgr.setNewScript(script);
 			break;
 		}
 		case MessageType::Unload:
