@@ -141,6 +141,6 @@ void ScriptManager::loadMap() {
 		ORIG_StateManager__createActivePlayer(*state_manager_singleton, profile, device);
 		ORIG_RaceManager__setPlayerKart(*g_race_manager, 0, script_data->player_name.c_str());
 		(**g_race_manager).setupBasicRace(script_data->difficulty, script_data->laps);
-		ORIG_RaceManager__startSingleRace(*g_race_manager, script_data->map_name.c_str(), 1, false);
+		ORIG_RaceManager__startSingleRace(*g_race_manager, script_data->map_name.c_str(), script_data->laps, false);
 	}
 }
