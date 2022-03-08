@@ -1,7 +1,7 @@
-map          "abyss"
-kart_name    "tux"
-num_laps     1
-difficulty   0
+map        = abyss
+kart_name  = tux
+num_laps   = 1
+difficulty = 0
 
 // ab|fns|angle|ticks|
 framebulks

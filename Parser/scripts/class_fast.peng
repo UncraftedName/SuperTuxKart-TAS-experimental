@@ -1,11 +1,11 @@
-map        = olivermath
-kart_name  = pidgin
-num_laps   = 3
-difficulty = 3
-quick_reset = true
+map         = olivermath
+kart_name   = pidgin
+num_laps    = 1
+difficulty  = 3
+quick_reset = false
 
 framebulks // ab|fns|angle|ticks|
-playspeed 1.2
+playspeed 1
 --|---|0|483| // wait for boost
 a-|---|0|200|
 // drift right and pick up nitros

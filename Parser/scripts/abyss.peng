@@ -1,11 +1,11 @@
-map          "abyss"
-kart_name    "tux"
-num_laps     1
-difficulty   2
+map        = abyss
+kart_name  = tux
+num_laps   = 1
+difficulty = 2
 
 framebulks // ab|fns|angle|ticks|
 
-playspeed 3
+playspeed 1
 --|---|0|600| // wait for match start
 
 // first sharp loop

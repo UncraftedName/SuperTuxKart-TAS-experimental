@@ -1,11 +1,11 @@
-map          "olivermath"
-kart_name    "tux"
-num_laps     1
-difficulty   2
+map        = olivermath
+kart_name  = tux
+num_laps   = 1
+difficulty = 2
 
 framebulks // ab|fns|angle|ticks|
 
-playspeed 1.2
+playspeed 1
 --|---|0|500| // wait for match start
 a-|---|0|100|
 a-|---|-1|40|
