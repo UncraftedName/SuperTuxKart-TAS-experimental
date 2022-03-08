@@ -6,16 +6,17 @@ An experimental set of TAS creation tools for SuperTuxKart. This was made as par
 
 This is designed *very specifically* for the [v1.3 official Windows release](https://supertuxkart.net/Download) of the game. This will not work for any other version.
 
+(Keep the Injector.exe and Payload.dll in the same directory as parser.py.)
+
 1. Download the zip from the [releases page](https://github.com/UncraftedName/SuperTuxKart-TAS-experimental/releases) and unzip it.
 2. Open up the game.
-3. Run Injector.exe.
-4. Execute TAS scripts from command line:
+3. Execute TAS scripts from command line:
 
-    4.1) Get [python](https://www.python.org/downloads/) (at least version 3.8) and make sure it's in your PATH.
+    3.1) Get [python](https://www.python.org/downloads/) (at least version 3.8) and make sure it's in your PATH.
 
-    4.2) Open up a e.g. powershell window in the same directory as parser.py by shift+right clicking in that folder.
+    3.2) Open up a e.g. powershell window in the same directory as parser.py by shift+right clicking in that folder.
 
-    4.3) Run TAS scripts from the command line like so: `parser.py -p "scripts\sample_script.peng"`.
+    3.3) Run TAS scripts from the command line like so: `parser.py -p "scripts\sample_script.peng"`.
 
 Check out the [TAS syntax doc](https://docs.google.com/document/d/1l9Jg-ELLlUAnMihQhPJFEH2yhZ2HhizQygtwTfeNIbs/edit?usp=sharing), see the README in the download for any clarifications on stuff that might not work.
 
