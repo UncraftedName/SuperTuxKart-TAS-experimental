@@ -48,7 +48,7 @@ void __stdcall Main(void* _) {
 		FreeLibraryAndExitThread(g_pInfo->hModule, 1);
 	}
 
-	if (hooks::hookAll() != MH_OK) {
+	if (hooks::HookAll() != MH_OK) {
 		MessageBoxA(0, "Failed to hook one or more functions", nullptr, MB_OK);
 		MH_Uninitialize();
 		FreeLibraryAndExitThread(g_pInfo->hModule, 1);
