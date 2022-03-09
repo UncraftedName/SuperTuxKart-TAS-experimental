@@ -23,7 +23,7 @@ std::string GetLastErrorAsStr() {
 
 
 // go through all processes and find the ID of the first one that matches the given string
-DWORD getProcessId(const wchar_t* processName) {
+DWORD GetProcessId(const wchar_t* processName) {
 	DWORD procId = 0;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 
@@ -46,7 +46,7 @@ DWORD getProcessId(const wchar_t* processName) {
 }
 
 
-bool isModuleLoaded(HANDLE hProc, const wchar_t* modName) {
+bool IsModuleLoaded(HANDLE hProc, const wchar_t* modName) {
 	
 	HMODULE hMods[1024] = {0};
 	DWORD bytesNeeded;
@@ -77,9 +77,9 @@ bool isModuleLoaded(HANDLE hProc, const wchar_t* modName) {
 }
 
 
-bool injectDLL(const wchar_t* processName, const wchar_t* dllPath, const wchar_t* dllName) {
+bool InjectDLL(const wchar_t* processName, const wchar_t* dllPath, const wchar_t* dllName) {
 
-	DWORD procID = getProcessId(processName);
+	DWORD procID = GetProcessId(processName);
 	if (!procID) {
 		std::cout << "Could not find target process ID (is the game open?)\n";
 		return false;
@@ -91,7 +91,7 @@ bool injectDLL(const wchar_t* processName, const wchar_t* dllPath, const wchar_t
 		return false;
 	}
 
-	if (isModuleLoaded(hProc, dllName)) {
+	if (IsModuleLoaded(hProc, dllName)) {
 		// premature exit
 		std::cout << "DLL already loaded\n";
 		return true;
@@ -122,14 +122,14 @@ bool injectDLL(const wchar_t* processName, const wchar_t* dllPath, const wchar_t
 }
 
 
-bool doesFileExist(const wchar_t* filePath) {
+bool DoesFileExist(const wchar_t* filePath) {
 	struct _stat64 buffer;
 	return (_wstat64(filePath, &buffer) == 0);
 }
 
 
 // gets dll path in current dir
-void getDllPath(const wchar_t* dllName, wchar_t* dllPath /* out */) {
+void GetDllPath(const wchar_t* dllName, wchar_t* dllPath /* out */) {
 	wchar_t buffer[MAX_PATH];
 	// Stores in buffer the current exe path (...\Injector.exe)
 	GetModuleFileNameW(NULL, buffer, MAX_PATH);
@@ -147,14 +147,14 @@ int main(void) {
 	const wchar_t* payloadName = L"Payload.dll";
 
 	wchar_t dllPath[MAX_PATH];
-	getDllPath(payloadName, dllPath);
+	GetDllPath(payloadName, dllPath);
 
-	if (!doesFileExist(dllPath)) {
+	if (!DoesFileExist(dllPath)) {
 		std::cout << "Could not find dll file.\n";
 		return EXIT_FAILURE;
 	}
 
-	if (injectDLL(processName, dllPath, payloadName)) {
+	if (InjectDLL(processName, dllPath, payloadName)) {
 		std::cout << "DLL successfully injected.\n";
 		return EXIT_SUCCESS;
 	} else {

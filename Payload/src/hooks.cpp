@@ -50,7 +50,7 @@ namespace hooks {
 	*                    This parameter can be NULL.
 	*/
 	template <typename T>
-	inline MH_STATUS queueFunctionHook(LPVOID pTarget, LPVOID pDetour, T*& pOriginal) {
+	inline MH_STATUS QueueFunctionHook(LPVOID pTarget, LPVOID pDetour, T*& pOriginal) {
 		MH_STATUS stat = MH_CreateHook(pTarget, pDetour, reinterpret_cast<LPVOID*>(&pOriginal));
 		if (stat != MH_OK)
 			return stat;
@@ -58,10 +58,10 @@ namespace hooks {
 	}
 
 
-	MH_STATUS hookAll() {
+	MH_STATUS HookAll() {
 
 		#define MH_FAILED(try_func) ((stat = (try_func)) != MH_OK)
-		#define MH_FAILED_HOOK(name, offset) MH_FAILED(queueFunctionHook(FROM_BASE(offset), &DETOUR_##name, ORIG_##name))
+		#define MH_FAILED_HOOK(name, offset) MH_FAILED(QueueFunctionHook(FROM_BASE(offset), &DETOUR_##name, ORIG_##name))
 
 
 		// hook functions
