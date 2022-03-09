@@ -5,7 +5,6 @@ difficulty = 2
 
 framebulks // ab|fns|angle|ticks|
 
-playspeed 1
 --|---|0|500| // wait for match start
 a-|---|0|100|
 a-|---|-1|40|

@@ -1,11 +1,9 @@
 map         = olivermath
 kart_name   = pidgin
-num_laps    = 1
+num_laps    = 2
 difficulty  = 3
-quick_reset = false
 
 framebulks // ab|fns|angle|ticks|
-playspeed 1
 --|---|0|483| // wait for boost
 a-|---|0|200|
 // drift right and pick up nitros
@@ -45,15 +43,51 @@ a-|-n-|0|50|
 a-|--s|-1|10|
 a-|--s|0|20|
 a-|--s|-1|60|
-a-|---|0|40|
+a-|---|0|20|
 a-|---|1|30|
-a-|-n-|0|30|
-//playspeed 0.5
-a-|---|0|15|
-a-|---|1|30|
-a-|---|0|10|
-a-|--s|1|80|
-
+a-|-n-|0|23|
+a-|---|0|13|
+a-|---|-1|18|
 // start lap 2
 // boost right and collect nitros
-playspeed 0
+a-|--s|1|10|
+a-|--s|-1|35|
+a-|--s|1|20|
+-b|--s|1|50|
+a-|--s|1|20|
+a-|---|1|64|
+a-|---|0|55|
+// start left drift
+a-|--s|-1|10|
+a-|--s|0|40|
+a-|--s|-1|75|
+a-|---|-1|5|
+a-|-n-|-1|10|
+a-|---|-1|30|
+a-|---|0|32|
+// drift and boost through shortcut
+a-|--s|-1|10|
+a-|--s|0|50|
+a-|f-s|0|60|
+a-|--s|-1|25|
+a-|---|-1|27|
+a-|---|0|10|
+a-|---|1|22|
+a-|---|0|30|
+// left drift after shortcut
+a-|--s|-1|10|
+a-|-ns|1|60|
+a-|--s|1|40|
+a-|--s|0|15|
+a-|---|0|30|
+a-|---|1|55|
+-b|--s|-1|90|
+a-|-n-|0|50|
+a-|---|-1|13|
+// final left drift to finish lap 2
+a-|--s|-1|10|
+a-|-ns|1|10|
+a-|--s|-1|110|
+a-|--s|0|10|
+a-|-n-|0|60|
+a-|---|0|180|
