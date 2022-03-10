@@ -112,7 +112,7 @@ void IPC::try_accept() {
 		return;
 	}
 
-	// you've got mail!
+	// you've got mail!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! :)
 
 	uint32_t size = 0;
 	if (recv(client_socket, (char*)&size, 4, 0) != 4 || size == 0) {
@@ -137,6 +137,7 @@ void IPC::try_accept() {
 	client_socket = INVALID_SOCKET;
 }
 
+// read mail :)
 void IPC::process_msg(const char* buf, size_t size, MessageType type) {
 	const char* buf_orig = buf;
 	switch (type) {

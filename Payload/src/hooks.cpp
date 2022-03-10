@@ -141,8 +141,8 @@ namespace hooks {
 				target_frametime_ms = int(dt / play_speed * 1000);
 				g_pInfo->script_mgr.tickSignal();
 			}
-			uint64_t cur_time = GetTickCount64();
-			int sleep_time_ms = target_frametime_ms - int(cur_time - prev_time);
+			// uint64_t cur_time = GetTickCount64();
+			int sleep_time_ms = target_frametime_ms - int(GetTickCount64() - prev_time);
 			if (play_speed >= 0 && sleep_time_ms > 0)
 				Sleep(sleep_time_ms);
 		} else {

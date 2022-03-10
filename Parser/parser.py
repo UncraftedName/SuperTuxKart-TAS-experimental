@@ -17,13 +17,108 @@ from typing import List, Tuple, Callable
 
 from client import ClientSocket, MessageType
 
+class Framebulk:
 
-FLAG_ACCEL     = 1
-FLAG_BREAK     = 1 << 1
-FLAG_ABILITY   = 1 << 2
-FLAG_NITRO     = 1 << 3
-FLAG_SKID      = 1 << 4
-FLAG_SET_SPEED = 1 << 5
+    class Flags:
+        FLAG_ACCEL     = 1
+        FLAG_BREAK     = 1 << 1
+        FLAG_ABILITY   = 1 << 2
+        FLAG_NITRO     = 1 << 3
+        FLAG_SKID      = 1 << 4
+        FLAG_SET_SPEED = 1 << 5
+
+        def __init__(self, accel=False, decel=False, ability=False, nitro=False, skid=False, set_speed=False):
+            self.accel = accel
+            self.decel = decel
+            self.ability = ability
+            self.nitro = nitro
+            self.skid = skid
+            self.set_speed = set_speed
+
+        @classmethod
+        def from_script(cls, fields: List[str]):
+            """Converts the framebulk fields to an int that has its bits set
+            to denote what buttons should be pressed for this framebulk.
+
+            Keyword arguments:
+            fields -- each 'section' of the framebulk; <section 1>|<section 2>|...|
+            """
+            acc  = fields[0]
+            misc = fields[1]
+            return cls(acc[0] == 'a', acc[1] == 'b', misc[0] == 'f', misc[1] == 'n', misc[2] == 's')
+
+        def to_int(self) -> int:
+            """
+            """
+            field_bits = 0
+
+            # accel fields
+
+            if self.accel:
+                field_bits |= self.FLAG_ACCEL
+            if self.decel:
+                field_bits |= self.FLAG_BREAK
+
+            # miscellaneous fields
+
+            if self.ability:
+                field_bits |= self.FLAG_ABILITY
+            if self.nitro:
+                field_bits |= self.FLAG_NITRO
+            if self.skid:
+                field_bits |= self.FLAG_SKID
+            if self.set_speed:
+                field_bits |= self.FLAG_SET_SPEED
+
+            return field_bits
+
+        def __eq__(self, __o: object) -> bool:
+            if type(__o) != Framebulk.Flags:
+                return False
+            return self.__dict__ == __o.__dict__
+
+        def __repr__(self) -> str:
+            return repr(self.__dict__)
+
+    def __init__(self, num_ticks: int, angle: float, flags: Flags):
+        self.num_ticks = num_ticks
+        self.angle = angle
+        self.flags = flags
+
+    @classmethod
+    def from_script(cls, line: str, line_num: int):
+        # https://stackoverflow.com/questions/12643009/regular-expression-for-floating-point-numbers
+        playspeed_re = define_field(
+            KW_PLAYSPEED,
+            r'[+-]?(?:\d+(?:[.]\d*)?(?:[eE][+-]?\d+)?|[.]\d+(?:[eE][+-]?\d+)?)'
+        )
+
+        m = re.match(playspeed_re, line)
+        if m:
+            # special playspeed framebulk - 0 ticks, angle is treated as new play speed
+            return cls(0, float(m.groupdict()[KW_PLAYSPEED]), Framebulk.Flags(set_speed=True))
+        else:
+            # syntax for framebulks:
+            # --|---|-|ticks|
+            # '-' indicates a button/field
+            fields = [x for x in line.split("|") if x and not x.isspace()]  # removes spaces from list elems
+            if len(fields) != 4:
+                print(f"Warning: Error parsing framebulk (line {line_num}). Exiting...")
+                exit(1)
+            return cls(int(fields[3]), float(fields[2]), Framebulk.Flags.from_script(fields))
+
+    def encode(self) -> bytes:
+        """
+        """
+        return struct.pack('hhf', self.flags.to_int(), self.num_ticks, self.angle)
+
+    def __eq__(self, __o: object) -> bool:
+        if type(__o) != Framebulk:
+            return False
+        return self.__dict__ == __o.__dict__
+
+    def __repr__(self) -> str:
+        return repr(self.__dict__)
 
 # header keywords
 KW_MAP         = 'map'
@@ -95,45 +190,22 @@ def define_field(key: str, pattern: str = r'[^\s\'"]+') -> str:
     return rf"""^{key}(?:\s+|\s*[:=]\s*)(?:"(?={pattern}")|'(?={pattern}'))?(?P<{key}>{pattern})['"]?$"""
 
 
-def encode_framebulk(field_bits: int, turn_ang: float, num_ticks: int) -> bytes:
-    """Encodes a line from the "framebulks" section into an instruction for game inputs
-    to be done for a given number of ticks.
+def encode_header(fields_dict: dict) -> bytes:
     """
-    return struct.pack('hhf', field_bits, num_ticks, turn_ang)
-
-
-def get_field_bits(fields: List[str]) -> int:
-    """Converts the framebulk fields to an int that has its bits set
-    to denote what buttons should be pressed for this framebulk.
-
-    Keyword arguments:
-    fields -- each 'section' of the framebulk; <section 1>|<section 2>|...|
     """
-    acc  = fields[0]
-    misc = fields[1]
-
-    field_bits = 0
-
-    # accel fields
-
-    if acc[0] == 'a':
-        field_bits |= FLAG_ACCEL
-    if acc[1] == 'b':
-        field_bits |= FLAG_BREAK
-
-    # miscellaneous fields
-
-    if misc[0] == 'f':
-        field_bits |= FLAG_ABILITY
-    if misc[1] == 'n':
-        field_bits |= FLAG_NITRO
-    if misc[2] == 's':
-        field_bits |= FLAG_SKID
-    
-    return field_bits
+    return (
+        fields_dict[KW_MAP].encode('utf-8') + b'\x00' +
+        fields_dict[KW_KART_NAME].encode('utf-8') + b'\x00' +
+        struct.pack('3ic',
+            fields_dict[KW_NUM_AI],
+            fields_dict[KW_NUM_LAPS],
+            fields_dict[KW_DIFFICULTY],
+            b'\x01' if fields_dict[KW_QUICK_RESET] else b'\x00'
+        )
+    )
 
 
-def parse_header(lines: List[Tuple[int, str]]) -> bytes:
+def parse_header(lines: List[Tuple[int, str]]) -> dict:
     """Parse script header and convert to bytes.
 
     Keyword arguments:
@@ -225,19 +297,18 @@ def parse_header(lines: List[Tuple[int, str]]) -> bytes:
         exit(1)
 
     # map + kart_name + int(num_ai) + int(num_laps) + int(difficulty) + byte(quick_reset)
-    return (
-        fields_dict[KW_MAP].encode('utf-8') + b'\x00' +
-        fields_dict[KW_KART_NAME].encode('utf-8') + b'\x00' +
-        struct.pack('3ic',
-            fields_dict[KW_NUM_AI],
-            fields_dict[KW_NUM_LAPS],
-            fields_dict[KW_DIFFICULTY],
-            b'\x01' if fields_dict[KW_QUICK_RESET] else b'\x00'
-        )
-    )
+    return fields_dict
+
+def encode_framebulks(framebulks: List[Framebulk]) -> bytes:
+    """
+    """
+    fb_bytes = b''
+    for framebulk in framebulks:
+        fb_bytes += framebulk.encode()
+    return fb_bytes
 
 
-def parse_framebulks(lines: List[Tuple[int, str]]) -> bytes:
+def parse_framebulks(lines: List[Tuple[int, str]]) -> List[Framebulk]:
     """parse script framebulks and convert to bytes
 
     Keyword arguments:
@@ -245,30 +316,12 @@ def parse_framebulks(lines: List[Tuple[int, str]]) -> bytes:
         these lines are assumed to have no leading/trailing whitespace
     """
 
-    fb_bytes = b''
-
-    # https://stackoverflow.com/questions/12643009/regular-expression-for-floating-point-numbers
-    playspeed_re = define_field(
-        KW_PLAYSPEED,
-        r'[+-]?(?:\d+(?:[.]\d*)?(?:[eE][+-]?\d+)?|[.]\d+(?:[eE][+-]?\d+)?)'
-    )
+    framebulks = []
 
     for line_num, line in lines:
-        m = re.match(playspeed_re, line)
-        if m:
-            # special playspeed framebulk - 0 ticks, angle is treated as new play speed
-            fb_bytes += encode_framebulk(FLAG_SET_SPEED, float(m.groupdict()[KW_PLAYSPEED]), 0)
-        else:
-            # syntax for framebulks:
-            # --|---|-|ticks|
-            # '-' indicates a button/field
-            fields = [x for x in line.split("|") if x and not x.isspace()]  # removes spaces from list elems
-            if len(fields) != 4:
-                print(f"Warning: Error parsing framebulk (line {line_num}). Exiting...")
-                exit(1)
-            fb_bytes += encode_framebulk(get_field_bits(fields), float(fields[2]), int(fields[3]))
+        framebulks.append(Framebulk.from_script(line, line_num))
 
-    return fb_bytes
+    return framebulks
 
 
 def parse_script(tas_file: str) -> bytes:
@@ -296,7 +349,10 @@ def parse_script(tas_file: str) -> bytes:
         print(f"No '{KW_HEADER_END}' keyword found, not sure where header ends.")
         exit(1)
 
-    return parse_header(lines[:header_end_idx]) + parse_framebulks(lines[header_end_idx+1:])
+    header = parse_header(lines[:header_end_idx])
+    framebulks = parse_framebulks(lines[header_end_idx+1:])
+
+    return encode_header(header) + encode_framebulks(framebulks)
 
 
 def get_script_path() -> str:

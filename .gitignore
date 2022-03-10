@@ -38,8 +38,9 @@
 # Python cache files
 **/__pycache__/*
 
-# Jetbrains
+# Jetbrains/vscode
 **/.idea/*
+**/.vscode/*
 
 # User-specific files
 *.suo
