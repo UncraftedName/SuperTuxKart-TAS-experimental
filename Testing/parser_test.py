@@ -10,8 +10,6 @@ sys.path.append("../Parser")
 import parser
 
 class TestParser(unittest.TestCase):
-    """
-    """
 
     def test_header_simple(self):
         """This test makes sure the parser is correctly parsing the header
@@ -50,7 +48,9 @@ class TestParser(unittest.TestCase):
         self.assertEqual(test_output, expected_output)
 
     def parser_setup(self, tas_file: str):
-        """
+        """This method will do the setup for the 'test_parser_simple' test.
+        It takes a tas file and parses each of the lines providing the
+        necessary information for the test to run
         """
         def clean_line(line: str) -> str:
             """Cleans each line of the input TAS script. Removes any comments,
@@ -111,7 +111,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(framebulks[14], parser.Framebulk(0,   0.0, parser.Framebulk.Flags(set_speed=True)))
       
     def test_header_encoding(self):
-        """
+        """This method tests that the parser is correctly encoding the header
         """
         test_header = {
             parser.KW_MAP : "abyss",
@@ -133,7 +133,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(test_output, expected_output)
 
     def test_framebulk_encoding(self):
-        """
+        """This method tests that the parser is correctly encoding framebulks
         """
         test_output_0 = parser.Framebulk(100, 0.0, parser.Framebulk.Flags(accel=True)).encode()
         test_output_1 = parser.Framebulk(0, 3.0, parser.Framebulk.Flags(set_speed=True)).encode()

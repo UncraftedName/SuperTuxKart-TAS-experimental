@@ -87,6 +87,12 @@ class Framebulk:
 
     @classmethod
     def from_script(cls, line: str, line_num: int):
+        """Converts framebulk into bytes
+
+        Keyword arguments:
+        str -- the line for the framebulk which this method is converting to bytes
+        int -- the line number for the specific line
+        """
         # https://stackoverflow.com/questions/12643009/regular-expression-for-floating-point-numbers
         playspeed_re = define_field(
             KW_PLAYSPEED,
@@ -108,7 +114,8 @@ class Framebulk:
             return cls(int(fields[3]), float(fields[2]), Framebulk.Flags.from_script(fields))
 
     def encode(self) -> bytes:
-        """
+        """Turns itself into bytes using the flags attribute as 
+        well as number of ticks and angle
         """
         return struct.pack('hhf', self.flags.to_int(), self.num_ticks, self.angle)
 
@@ -191,7 +198,10 @@ def define_field(key: str, pattern: str = r'[^\s\'"]+') -> str:
 
 
 def encode_header(fields_dict: dict) -> bytes:
-    """
+    """Converts a dictionary representing fields into bytes
+
+    Keyword arguments:
+    dictionary -- dictionary containing information on the fields of a framebulk
     """
     return (
         fields_dict[KW_MAP].encode('utf-8') + b'\x00' +
@@ -210,7 +220,7 @@ def parse_header(lines: List[Tuple[int, str]]) -> dict:
 
     Keyword arguments:
     lines -- all lines in the script before the 'frames' keyword,
-        these lines are assumed to have no leading/trailing whitespace
+    these lines are assumed to have no leading/trailing whitespace
     """
 
     header_fields_regex = '|'.join((
@@ -300,7 +310,10 @@ def parse_header(lines: List[Tuple[int, str]]) -> dict:
     return fields_dict
 
 def encode_framebulks(framebulks: List[Framebulk]) -> bytes:
-    """
+    """Converts list of framebulks into bytes
+
+    Keyword arguments:
+    framebulks -- list of Framebulk objects
     """
     fb_bytes = b''
     for framebulk in framebulks:
@@ -309,11 +322,11 @@ def encode_framebulks(framebulks: List[Framebulk]) -> bytes:
 
 
 def parse_framebulks(lines: List[Tuple[int, str]]) -> List[Framebulk]:
-    """parse script framebulks and convert to bytes
+    """Parse script framebulks and convert to bytes
 
     Keyword arguments:
     lines -- all lines in the script after the 'frames' keyword,
-        these lines are assumed to have no leading/trailing whitespace
+    these lines are assumed to have no leading/trailing whitespace
     """
 
     framebulks = []
